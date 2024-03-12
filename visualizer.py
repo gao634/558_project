@@ -12,6 +12,7 @@ def showPRM(args):
     print(map.graph.size)
     print(len(map.graph.e))
     print(map.graph.e)
+    print(map.collision((0.5, 5.5)))
 
 
 def main(args):

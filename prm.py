@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import os
+import copy
 
 # taken from assignment 1 part 2
 def diff(v1, v2):
@@ -39,7 +40,7 @@ class ENV():
 
 # this class creates the road map. one rm is created per env to generate paths
 class PRM():
-    def __init__(self, env=ENV(), step_size=0.01, n_iters = 100):
+    def __init__(self, env=ENV(), step_size=0.05, n_iters = 100):
         self.env = env
         self.step_size = step_size
         self.graph = Graph()
@@ -50,27 +51,64 @@ class PRM():
             node = self.generateSample()
             if self.collision(node.coord()):
                 continue
-            if not self.graph.size:
-                index = self.addNode(node)
-                if animate:
-                    self.visualize(node)
-                continue
             near = self.getNearest(node)
-            index = self.addNode(node)
+            if near is None:
+                self.addNode(node)
+                continue
             if self.steerTo(self.getNode(near), node):
-                #index = self.addNode(node)
+                index = self.addNode(node)
                 self.addEdge(near, index)
+                #print(near)
                 if animate:
                     self.visualize(node)
     # returns true if no collision
+    """
     def steerTo(self, start, goal):
-        d = diff(start.coord(), goal.coord())
-        d = [x * self.step_size for x in d]
-        for i in range(math.floor(1/self.step_size)):
-            temp = (start.x + d[0] * i, start.y + d[1] * i)
+        dir = diff(start.coord(), goal.coord())
+        # normalize direction vector
+        distance = distNode(start, goal)
+        dir = [x * self.step_size / distance for x in dir]
+        n = int(math.floor(distance / self.step_size)) + 1
+        for i in range(n):
+            temp = (start.x + dir[0] * i, start.y + dir[1] * i)
             if self.collision(temp):
                 return False
         return True
+    """
+    def steerTo(self, dest, source):
+        newNode = copy.deepcopy(source)
+
+        DISCRETIZATION_STEP=self.step_size
+
+        dists = [dest.x - source.x, dest.y - source.y]
+
+        distTotal = magnitude(dists)
+
+
+        if distTotal>0:
+            incrementTotal = distTotal/DISCRETIZATION_STEP
+            for j in range(0, 2):
+                dists[j] =dists[j]/incrementTotal
+            numSegments = int(math.floor(incrementTotal))+1
+
+            stateCurr = np.zeros(2,dtype=np.float32)
+            for j in range(0,2):
+                stateCurr[j] = newNode.coord()[j]
+
+            for i in range(0,numSegments):
+
+                if not self.collision(stateCurr):
+                    return (False, None)
+
+                for j in range(0,2):
+                    stateCurr[j] += dists[j]
+
+            if not self.collision(dest.coord()):
+                return False
+
+            return True
+        else:
+            return False
     # returns false if no collision
     def collision(self, pos):
         x, y = pos
@@ -89,8 +127,8 @@ class PRM():
         y = np.random.uniform(0, self.env.width)
         return Node(x, y)
     def addNode(self, node):
+        index = self.graph.size
         self.graph.size += 1
-        index = len(self.graph.v)
         self.graph.v.append(node)
         return index
     def addEdge(self, a, b):
@@ -98,6 +136,8 @@ class PRM():
     def getNode(self, index):
         return self.graph.v[index]
     def getNears(self, node):
+        if not self.graph.size:
+            return None
         # dist function tbd
         thresh = 5
         nears = []
@@ -106,6 +146,8 @@ class PRM():
                 nears.append(i)
         return nears
     def getNearest(self, node):
+        if not self.graph.size:
+            return None
         thresh = distNode(node, self.getNode(0))
         near = 0
         for i in range(self.graph.size):
@@ -124,11 +166,12 @@ class PRM():
             plt.plot([self.getNode(edge[0]).x, self.getNode(edge[1]).x],
                     [self.getNode(edge[0]).y, self.getNode(edge[1]).y], '-g')
         if node is not None:
-            plt.plot(node.x, node.y, '^k')
+            plt.plot(node.x, node.y, 'k')
         plt.axis("equal")
         plt.axis([0, 10, 0, 10])
         plt.grid(True)
         plt.pause(0.01)
+
 # graph data structure
 class Graph():
     def __init__(self):
@@ -143,6 +186,3 @@ class Node():
         self.y = y
     def coord(self):
         return (self.x, self.y)
-
-env = ENV()
-env.load('./env_0.txt')
