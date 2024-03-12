@@ -38,12 +38,27 @@ class ENV():
 
 # this class creates the road map. one rm is created per env to generate paths
 class PRM():
-    def __init__(self, env, step_size=0.01, n_iter = 100):
+    def __init__(self, env, step_size=0.01, n_iters = 100):
         self.env = env
         self.step_size = step_size
-        self.graph = Graph()
-    def plan(self):
-        pass
+        self.nodes = Graph()
+        self.n_iters = n_iters
+    def plan(self, animate=False):
+        for i in range(self.n_iters):
+            node = self.generateSample()
+            if self.graph.size == 0:
+                self.addNode(node)
+            nears = self.getNearest(node)
+            for near in nears:
+                added = False
+                if not self.steerTo(self.getNode(near), node):
+                    if not added:
+                        added = True
+                        index = self.addNode(node)
+                    self.addEdge(near, index)
+                    if animate:
+                        plt.plot([self.getNode(near).x, self.getNode(index).x],
+                            [self.getNode(near).y, self.getNode(index).y], '-g')
     def steerTo(self, start, goal):
         diff = diff(start, goal)
         diff *= self.step_size
@@ -68,18 +83,33 @@ class PRM():
         x = np.random.uniform(0, self.env.length)
         y = np.random.uniform(0, self.env.width)
         return (x, y)
-    def addNode():
-        pass
-    def getNearest():
-        pass
+    def addNode(self, node):
+        self.graph.size += 1
+        index = len(self.graph.v)
+        self.graph.v.append(node)
+        return index
+    def addEdge(self, a, b):
+        self.graph.e.append((self.getNode(a), self.getNode(b)))
+    def getNode(self, index):
+        return self.graph.v[index]
+    def getNearest(self, node):
+        # dist function tbd
+        range = 5
+        nears = []
+        for i in range(self.graph.size):
+            if dist(node, self.getNode(i)) < range:
+                nears.append(i)
+        return nears
     # saves the graph of the road map so it can be used later to generate paths
     def save():
         pass
     # loads graph from data file for visuals
     def load():
         pass
-    def visualize():
-        pass
+    def visualize(self):
+        for edge in self.graph.e:
+            plt.plot([self.getNode(edge[0]).x, self.getNode(edge[1]).x],
+                    [self.getNode(edge[0]).y, self.getNode(edge[1]).y], '-g')
 
 # graph data structure
 class Graph():
