@@ -38,14 +38,36 @@ class ENV():
 
 # this class creates the road map. one rm is created per env to generate paths
 class PRM():
-    def __init__():
+    def __init__(self, env, step_size=0.01, n_iter = 100):
+        self.env = env
+        self.step_size = step_size
+        self.graph = Graph()
+    def plan(self):
         pass
-    def steerTo():
-        pass
-    def collision():
-        pass
-    def generateSample():
-        pass
+    def steerTo(self, start, goal):
+        diff = diff(start, goal)
+        diff *= self.step_size
+        for i in range(1/self.step_size):
+            temp = (start[0] + diff[0], start[1] + diff[1])
+            if self.collision(self, temp):
+                return False
+        return True
+    # returns false if no collision
+    def collision(self, pos):
+        x, y = pos
+        if x > self.env.length or y > self.env.width:
+            return True
+        for obstacle in self.env.obs:
+            collision = True
+            if abs(obstacle[0] - x + 0.5) > 0.5:
+                collision = False
+            elif abs(obstacle[1] - y + 0.5) > 0.5:
+                collision = False
+        return collision      
+    def generateSample(self):
+        x = np.random.uniform(0, self.env.length)
+        y = np.random.uniform(0, self.env.width)
+        return (x, y)
     def addNode():
         pass
     def getNearest():
@@ -61,8 +83,16 @@ class PRM():
 
 # graph data structure
 class Graph():
-    def __init__():
-        pass
+    def __init__(self):
+        self.size = 0
+        self.v = []
+        self.e = []
+
+# node data structure
+class Node():
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
 
 env = ENV()
 env.load('./env_0.txt')
