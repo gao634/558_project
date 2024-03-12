@@ -2,9 +2,21 @@ import numpy as np
 import argparse
 import matplotlib
 import matplotlib.pyplot as plt
+import prm
+
+def showPRM(args):
+    map = prm.PRM()
+    map.env.load('./env_0.txt')
+    map.plan(True)
+    map.visualize()
+    print(map.graph.size)
+    print(len(map.graph.e))
+    print(map.graph.e)
+
 
 def main(args):
-    pass
+    showPRM(args)
+    plt.show()
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data-path', type=str, default='./data/')
