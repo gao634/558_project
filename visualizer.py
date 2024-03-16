@@ -3,21 +3,32 @@ import argparse
 import matplotlib
 import matplotlib.pyplot as plt
 import prm
+import prm
 
 def showPRM(args):
     map = prm.PRM()
     map.env.load('./env_0.txt')
     map.plan(True)
     map.visualize()
-    print(map.graph.size)
-    print(len(map.graph.e))
-    print(map.graph.e)
-    print(map.collision((0.5, 5.5)))
+    #print(map.graph.e)
+    a = prm.Node(0.9648, 1.1297)
+    b = prm.Node(1.3363, 0.8655)
+    #map.addNode(a)
+    #map.addNode(b)
+    #map.addEdge(0, 1)
+    #map.visualize()
+    #print(map.steerTo(a, b))
+    #for i in range(map.graph.size):
+    #   print(map.getNode(i).x, map.getNode(i).y)
 
 
 def main(args):
+    
+    fig, ax = plt.subplots()
+    fig.canvas.mpl_connect('close_event', prm.cleanup)
     showPRM(args)
     plt.show()
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data-path', type=str, default='./data/')

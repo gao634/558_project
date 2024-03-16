@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import os
 import copy
+import sys
 
 # taken from assignment 1 part 2
 def diff(v1, v2):
@@ -17,6 +18,12 @@ def dist(p1, p2):
 
 def distNode(n1, n2):
     return dist((n1.x, n1.y), (n2.x, n2.y))
+
+def cleanup(event):
+    plt.close()
+    print("Window Closed")
+    sys.exit()
+
 # this class loads an environment with obstacles to run PRM on
 class ENV():
     def __init__(self, length=20, width=20, obs=[]):
@@ -40,31 +47,33 @@ class ENV():
 
 # this class creates the road map. one rm is created per env to generate paths
 class PRM():
-    def __init__(self, env=ENV(), step_size=0.05, n_iters = 100):
+    def __init__(self, env=ENV(), step_size=0.01, n_iters = 500):
         self.env = env
         self.step_size = step_size
         self.graph = Graph()
         self.n_iters = n_iters
     def plan(self, animate=False):
         for i in range(self.n_iters):
-            print(i)
+        #print(i)
             node = self.generateSample()
             if self.collision(node.coord()):
                 continue
             near = self.getNearest(node)
+            # if graph is empty
             if near is None:
                 self.addNode(node)
                 continue
             if self.steerTo(self.getNode(near), node):
                 index = self.addNode(node)
                 self.addEdge(near, index)
+                #print(self.getNode(near).coord(), node.coord())
                 #print(near)
                 if animate:
                     self.visualize(node)
+        print("planning complete")
     # returns true if no collision
-    """
     def steerTo(self, start, goal):
-        dir = diff(start.coord(), goal.coord())
+        dir = diff(goal.coord(), start.coord())
         # normalize direction vector
         distance = distNode(start, goal)
         dir = [x * self.step_size / distance for x in dir]
@@ -74,41 +83,6 @@ class PRM():
             if self.collision(temp):
                 return False
         return True
-    """
-    def steerTo(self, dest, source):
-        newNode = copy.deepcopy(source)
-
-        DISCRETIZATION_STEP=self.step_size
-
-        dists = [dest.x - source.x, dest.y - source.y]
-
-        distTotal = magnitude(dists)
-
-
-        if distTotal>0:
-            incrementTotal = distTotal/DISCRETIZATION_STEP
-            for j in range(0, 2):
-                dists[j] =dists[j]/incrementTotal
-            numSegments = int(math.floor(incrementTotal))+1
-
-            stateCurr = np.zeros(2,dtype=np.float32)
-            for j in range(0,2):
-                stateCurr[j] = newNode.coord()[j]
-
-            for i in range(0,numSegments):
-
-                if not self.collision(stateCurr):
-                    return (False, None)
-
-                for j in range(0,2):
-                    stateCurr[j] += dists[j]
-
-            if not self.collision(dest.coord()):
-                return False
-
-            return True
-        else:
-            return False
     # returns false if no collision
     def collision(self, pos):
         x, y = pos
@@ -151,8 +125,10 @@ class PRM():
         thresh = distNode(node, self.getNode(0))
         near = 0
         for i in range(self.graph.size):
-            if distNode(node, self.getNode(i)) < thresh:
+            distance = distNode(node, self.getNode(i))
+            if distance < thresh:
                 near = i
+                thresh = distance
         return near
     # saves the graph of the road map so it can be used later to generate paths
     def save():
@@ -161,14 +137,23 @@ class PRM():
     def load():
         pass
     def visualize(self, node=None):
+        plt.clf()
         self.env.visualize()
         for edge in self.graph.e:
             plt.plot([self.getNode(edge[0]).x, self.getNode(edge[1]).x],
                     [self.getNode(edge[0]).y, self.getNode(edge[1]).y], '-g')
+        for i in range(self.graph.size):
+            pass
+            #plt.plot([self.getNode(i).x], [self.getNode(i).y],)
+            #plt.text(self.getNode(i).x + 0.03, self.getNode(i).y + 0.03, str(i), fontsize=10, color='blue')
         if node is not None:
-            plt.plot(node.x, node.y, 'k')
-        plt.axis("equal")
-        plt.axis([0, 10, 0, 10])
+            plt.plot(node.x, node.y, '^r')
+        ax = plt.gca()
+        ax.xaxis.set_major_locator(plt.MultipleLocator(1))
+        ax.yaxis.set_major_locator(plt.MultipleLocator(1))
+        ax.set_xlim([0, self.env.length])
+        ax.set_ylim([0, self.env.width])
+        ax.set_aspect('equal', adjustable='box')
         plt.grid(True)
         plt.pause(0.01)
 
