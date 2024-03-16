@@ -29,7 +29,7 @@ def main(args):
     showPRM(args)
     plt.show()
 
-
+# args not used for now
 parser = argparse.ArgumentParser()
 parser.add_argument('--data-path', type=str, default='./data/')
 parser.add_argument('--env-id', type=int, default=0)

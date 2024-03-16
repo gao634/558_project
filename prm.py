@@ -47,12 +47,12 @@ class ENV():
 
 # this class creates the road map. one rm is created per env to generate paths
 class PRM():
-    def __init__(self, env=ENV(), step_size=0.01, n_iters = 500):
+    def __init__(self, env=ENV(), step_size=0.01, n_iters = 1000):
         self.env = env
         self.step_size = step_size
         self.graph = Graph()
         self.n_iters = n_iters
-    def plan(self, animate=False):
+    def plan(self, animate=False, space_saving=True):
         for i in range(self.n_iters):
         #print(i)
             node = self.generateSample()
@@ -64,6 +64,9 @@ class PRM():
                 self.addNode(node)
                 continue
             if self.steerTo(self.getNode(near), node):
+                if space_saving:
+                    if distNode(node, self.getNode(near)) < 0.5:
+                        continue
                 index = self.addNode(node)
                 self.addEdge(near, index)
                 #print(self.getNode(near).coord(), node.coord())
