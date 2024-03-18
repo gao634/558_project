@@ -74,6 +74,8 @@ class PRM():
                 if animate:
                     self.visualize(node)
         print("planning complete")
+    def getPath(self, start, goal):
+        pass
     # returns true if no collision
     def steerTo(self, start, goal):
         dir = diff(goal.coord(), start.coord())

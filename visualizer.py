@@ -3,13 +3,26 @@ import argparse
 import matplotlib
 import matplotlib.pyplot as plt
 import prm
-import prm
+import time
+
+# kinda sucks, will make them by hand for now
+def generateENV(l, w, density):
+    env = np.zeros(l, w)
+    for i in range(l):
+        for j in range(w):
+            rnd = np.random.uniform(0, 1)
+            if rnd < density:
+                env[i][j] = 1
 
 def showPRM(args):
     map = prm.PRM()
     map.env.load('./env_0.txt')
-    map.plan(True)
+    time1 = time.time()
+    map.plan(False, False)
+    time2 = time.time()
+    print(time2 - time1)
     map.visualize()
+    print(map.graph.size)
     #print(map.graph.e)
     a = prm.Node(0.9648, 1.1297)
     b = prm.Node(1.3363, 0.8655)
