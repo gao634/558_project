@@ -19,6 +19,7 @@ def dist(p1, p2):
 def distNode(n1, n2):
     return dist((n1.x, n1.y), (n2.x, n2.y))
 
+# force quits program when x button is pressed on animation
 def cleanup(event):
     plt.close()
     print("Window Closed")
@@ -47,35 +48,34 @@ class ENV():
 
 # this class creates the road map. one rm is created per env to generate paths
 class PRM():
-    def __init__(self, env=ENV(), step_size=0.01, n_iters = 1000, tree=False):
+    def __init__(self, env=ENV(), step_size=0.01, tree=False):
         self.env = env
         self.step_size = step_size
         self.graph = Graph()
-        self.n_iters = n_iters
         # determines if the prm is a graph or tree structure
         # get nearest will return a single node if tree, multiple if graph
-        # if tree, graph.e will be empty, node.cost will be distance from root
+        # if tree, graph.e and graph.regions will be empty, node.cost will be distance from root
         # if graph, node.parent and node.children will be empty
         self.tree = tree
-    def plan(self, animate=False, space_saving=True):
-        for i in range(self.n_iters):
+    def plan(self, n_iters=1000, animate=False, space_saving=True, split=3):
+        for i in range(n_iters):
             node = self.generateSample()
             if self.collision(node.coord()):
                 continue
-            nears = self.getNearest(node)
+            nears = self.getNearest(node, split, space_saving)
             # if graph is empty
             if nears is None:
                 self.addNode(node)
                 continue
+            # if graph, add the node even if can't steer for now
+            if not self.tree:
+                index = self.addNode(node)
             for near in nears:
-                if self.steerTo(self.getNode(near), node):
-                    if space_saving:
-                        if distNode(node, self.getNode(near)) < 0.5:
-                            continue
+                if self.tree:
                     index = self.addNode(node)
-                    self.addEdge(near, index)
-                    if animate:
-                        self.visualize(node)
+                self.addEdge(near, index)
+                if animate:
+                    self.visualize(node, i)
         print("planning complete")
     def getPath(self, start_coord, goal_coord):
         # if coords are in collision
@@ -143,6 +143,8 @@ class PRM():
         index = self.graph.size
         self.graph.size += 1
         self.graph.v.append(node)
+        if not self.tree:
+            self.graph.regions.append([index])
         return index
     def addEdge(self, a, b):
         cost = distNode(self.getNode(a), self.getNode(b))
@@ -152,31 +154,74 @@ class PRM():
             self.getNode(b).cost = cost + self.getNode(a).cost
         else:
             self.graph.e.append((a, b, cost))
+            for region in self.graph.regions:
+                # combine regions
+                if a in region and b not in region:
+                    # find b region
+                    for b_region in self.graph.regions:
+                        if b in b_region:
+                            combined = region + b_region
+                            self.graph.regions.remove(region)
+                            self.graph.regions.remove(b_region)
+                            self.graph.regions.append(combined)
     def getNode(self, index):
         return self.graph.v[index]
-    def getNearest(self, node):
+    def getNearest(self, node, split, space_saving):
         if not self.graph.size:
             return None
+        dlist = []
+        for n in self.graph.v:
+            dlist.append(distNode(node, n))
+        min_dist = min(dlist)
+        if space_saving and min_dist < 0.5:
+            return []
+        near = dlist.index(min_dist)
         if self.tree:
-            pass
-        else:
-            thresh = distNode(node, self.getNode(0))
-            near = 0
-            for i in range(self.graph.size):
-                distance = distNode(node, self.getNode(i))
-                if distance < thresh:
-                    near = i
-                    thresh = distance
-            return [near]
+            if self.steerTo(self.getNode(near), node):
+                return [near]
+            return []
+        # for graph structure in order to minimize edges, only closest few will be connected
+        # however, we want isolated regions to connect, so we check every other region as well
+        nears = []
+        # connect to closest node to each region
+        for region in self.graph.regions:
+            min_dist = float('inf')
+            nearest = -1
+            for n in region:
+                distance = distNode(node, self.getNode(n))
+                if distance < min_dist:
+                    if (space_saving and distance > 0.5) or not space_saving:
+                        min_dist = distance
+                        nearest = n
+            if nearest != -1 and self.steerTo(node, self.getNode(nearest)):
+                nears.append(nearest)
+        # check [split] closest nodes
+        sorted_dlist = []
+        for i in range(self.graph.size):
+            sorted_dlist.append((dlist[i], i))
+        dlist.sort()
+        for i in range(min(split, self.graph.size)):
+            dist, ind = sorted_dlist[i]
+            if ind not in nears:
+                if self.steerTo(self.getNode(ind), node):
+                    if (space_saving and dist > 0.5) or not space_saving:
+                        nears.append(ind)
+        return nears
+
+
+
+
     # saves the graph of the road map so it can be used later to generate paths
     def save():
         pass
     # loads graph from data file for visuals
     def load():
         pass
-    def visualize(self, node=None):
+    def visualize(self, node=None, iter=-1):
         plt.clf()
         self.env.visualize()
+        if iter >= 0:
+            plt.text(-1, -1, str(iter), fontsize=10, color='blue')
         if self.tree:    
             for node in self.graph.v:
                 if node.parent is not None:
@@ -187,8 +232,7 @@ class PRM():
                 plt.plot([self.getNode(edge[0]).x, self.getNode(edge[1]).x],
                         [self.getNode(edge[0]).y, self.getNode(edge[1]).y], '-g')
         for i in range(self.graph.size):
-            pass
-            #plt.plot([self.getNode(i).x], [self.getNode(i).y],)
+            plt.plot([self.getNode(i).x], [self.getNode(i).y], '-og')
             #plt.text(self.getNode(i).x + 0.03, self.getNode(i).y + 0.03, str(i), fontsize=10, color='blue')
         if node is not None:
             plt.plot(node.x, node.y, '^r')
@@ -207,6 +251,7 @@ class Graph():
         self.size = 0
         self.v = []
         self.e = []
+        self.regions = []
 
 # node data structure
 class Node():

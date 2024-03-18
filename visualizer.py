@@ -15,10 +15,10 @@ def generateENV(l, w, density):
                 env[i][j] = 1
 
 def showPRM(args):
-    map = prm.PRM()
+    map = prm.PRM(tree=False)
     map.env.load('./env_0.txt')
     time1 = time.time()
-    map.plan(False, True)
+    map.plan(1000, True, True)
     time2 = time.time()
     print(time2 - time1)
     map.visualize()
