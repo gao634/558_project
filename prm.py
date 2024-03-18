@@ -47,32 +47,35 @@ class ENV():
 
 # this class creates the road map. one rm is created per env to generate paths
 class PRM():
-    def __init__(self, env=ENV(), step_size=0.01, n_iters = 1000):
+    def __init__(self, env=ENV(), step_size=0.01, n_iters = 1000, tree=False):
         self.env = env
         self.step_size = step_size
         self.graph = Graph()
         self.n_iters = n_iters
+        # determines if the prm is a graph or tree structure
+        # get nearest will return a single node if tree, multiple if graph
+        # if tree, graph.e will be empty, node.cost will be distance from root
+        # if graph, node.parent and node.children will be empty
+        self.tree = tree
     def plan(self, animate=False, space_saving=True):
         for i in range(self.n_iters):
-        #print(i)
             node = self.generateSample()
             if self.collision(node.coord()):
                 continue
-            near = self.getNearest(node)
+            nears = self.getNearest(node)
             # if graph is empty
-            if near is None:
+            if nears is None:
                 self.addNode(node)
                 continue
-            if self.steerTo(self.getNode(near), node):
-                if space_saving:
-                    if distNode(node, self.getNode(near)) < 0.5:
-                        continue
-                index = self.addNode(node)
-                self.addEdge(near, index)
-                #print(self.getNode(near).coord(), node.coord())
-                #print(near)
-                if animate:
-                    self.visualize(node)
+            for near in nears:
+                if self.steerTo(self.getNode(near), node):
+                    if space_saving:
+                        if distNode(node, self.getNode(near)) < 0.5:
+                            continue
+                    index = self.addNode(node)
+                    self.addEdge(near, index)
+                    if animate:
+                        self.visualize(node)
         print("planning complete")
     def getPath(self, start_coord, goal_coord):
         # if coords are in collision
@@ -99,7 +102,13 @@ class PRM():
         # if road map sucks
         if not start_nearest or not goal_nearest:
             return None
-        # dijkstras
+        # path finding for tree structure
+        if self.tree:
+            pass
+        # path finding for graph (dijkstras)
+        else:
+            pass
+
 
     # returns true if no collision
     def steerTo(self, start, goal):
@@ -136,30 +145,29 @@ class PRM():
         self.graph.v.append(node)
         return index
     def addEdge(self, a, b):
-        self.graph.e.append((a, b))
+        cost = distNode(self.getNode(a), self.getNode(b))
+        if self.tree:
+            self.getNode(a).children.add(b)
+            self.getNode(b).parent = a
+            self.getNode(b).cost = cost + self.getNode(a).cost
+        else:
+            self.graph.e.append((a, b, cost))
     def getNode(self, index):
         return self.graph.v[index]
-    def getNears(self, node):
-        if not self.graph.size:
-            return None
-        # dist function tbd
-        thresh = 5
-        nears = []
-        for i in range(self.graph.size):
-            if distNode(node, self.getNode(i)) < thresh:
-                nears.append(i)
-        return nears
     def getNearest(self, node):
         if not self.graph.size:
             return None
-        thresh = distNode(node, self.getNode(0))
-        near = 0
-        for i in range(self.graph.size):
-            distance = distNode(node, self.getNode(i))
-            if distance < thresh:
-                near = i
-                thresh = distance
-        return near
+        if self.tree:
+            pass
+        else:
+            thresh = distNode(node, self.getNode(0))
+            near = 0
+            for i in range(self.graph.size):
+                distance = distNode(node, self.getNode(i))
+                if distance < thresh:
+                    near = i
+                    thresh = distance
+            return [near]
     # saves the graph of the road map so it can be used later to generate paths
     def save():
         pass
@@ -169,9 +177,15 @@ class PRM():
     def visualize(self, node=None):
         plt.clf()
         self.env.visualize()
-        for edge in self.graph.e:
-            plt.plot([self.getNode(edge[0]).x, self.getNode(edge[1]).x],
-                    [self.getNode(edge[0]).y, self.getNode(edge[1]).y], '-g')
+        if self.tree:    
+            for node in self.graph.v:
+                if node.parent is not None:
+                    plt.plot([node.x, self.getNode(node.parent).x], [
+                            node.y, self.getNode(node.parent).y], "-g")
+        else:
+            for edge in self.graph.e:
+                plt.plot([self.getNode(edge[0]).x, self.getNode(edge[1]).x],
+                        [self.getNode(edge[0]).y, self.getNode(edge[1]).y], '-g')
         for i in range(self.graph.size):
             pass
             #plt.plot([self.getNode(i).x], [self.getNode(i).y],)
@@ -196,8 +210,11 @@ class Graph():
 
 # node data structure
 class Node():
-    def __init__(self, x, y):
+    def __init__(self, x, y, parent=None):
         self.x = x
         self.y = y
+        self.cost = 0.0
+        self.parent = parent
+        self.children = set()
     def coord(self):
         return (self.x, self.y)
