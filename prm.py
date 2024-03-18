@@ -74,8 +74,33 @@ class PRM():
                 if animate:
                     self.visualize(node)
         print("planning complete")
-    def getPath(self, start, goal):
-        pass
+    def getPath(self, start_coord, goal_coord):
+        # if coords are in collision
+        if self.collision(start_coord) or self.collision(goal_coord):
+            return None
+        start = Node(start_coord)
+        goal = Node(goal_coord)
+        # steer to every node and connect to the closest ones
+        start_nearest = None
+        start_nearest_dist = float('inf')
+        goal_nearest = None
+        goal_nearest_dist = float('inf')
+        for v in self.graph.v:
+            if self.steerTo(v, start):
+                cost = distNode(v, start)
+                if cost < start_nearest_dist:
+                    start_nearest = v
+                    start_nerest_dist = cost
+            if self.steerTo(v, goal):
+                cost = distNode(v, goal)
+                if cost < goal_nearest_dist:
+                    goal_nearest = v
+                    goal_nerest_dist = cost
+        # if road map sucks
+        if not start_nearest or not goal_nearest:
+            return None
+        # dijkstras
+
     # returns true if no collision
     def steerTo(self, start, goal):
         dir = diff(goal.coord(), start.coord())
