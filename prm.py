@@ -55,9 +55,9 @@ class PRM():
         # determines if the prm is a graph or tree structure
         # get nearest will return a single node if tree, multiple if graph
         # if tree, graph.e and graph.regions will be empty, node.cost will be distance from root
-        # if graph, node.parent and node.children will be empty
+        # if graph, graph.root, node.parent and node.children will be empty
         self.tree = tree
-    def plan(self, n_iters=1000, animate=False, space_saving=True, split=3):
+    def plan(self, n_iters=1000, animate=False, space_saving=True, split=2):
         for i in range(n_iters):
             node = self.generateSample()
             if self.collision(node.coord()):
@@ -65,11 +65,20 @@ class PRM():
             nears = self.getNearest(node, split, space_saving)
             # if graph is empty
             if nears is None:
+                if self.tree:
+                    self.graph.root = Node
                 self.addNode(node)
+                if animate:
+                    self.visualize(node, i)
                 continue
             # if graph, add the node even if can't steer for now
             if not self.tree:
+                if space_saving and len(nears) > 0:
+                    if nears[0] == -1:
+                        continue
                 index = self.addNode(node)
+                if animate:
+                    self.visualize(node, i)
             for near in nears:
                 if self.tree:
                     index = self.addNode(node)
@@ -77,6 +86,9 @@ class PRM():
                 if animate:
                     self.visualize(node, i)
         print("planning complete")
+    # connect regions, called outside of loop to reduce computation costs
+    def cleanRegions(self):
+        pass
     def getPath(self, start_coord, goal_coord):
         # if coords are in collision
         if self.collision(start_coord) or self.collision(goal_coord):
@@ -102,14 +114,20 @@ class PRM():
         # if road map sucks
         if not start_nearest or not goal_nearest:
             return None
+        path = []
+        cost = 0
         # path finding for tree structure
         if self.tree:
-            pass
+            # all nodes lead to root, then from root go up until find divergence
+            start_path = []
+            goal_path = []
+            temp = start_nearest
+            while temp is not self.graph.root:
+
         # path finding for graph (dijkstras)
         else:
             pass
-
-
+        return path, cost
     # returns true if no collision
     def steerTo(self, start, goal):
         dir = diff(goal.coord(), start.coord())
@@ -173,10 +191,10 @@ class PRM():
         for n in self.graph.v:
             dlist.append(distNode(node, n))
         min_dist = min(dlist)
-        if space_saving and min_dist < 0.5:
-            return []
         near = dlist.index(min_dist)
         if self.tree:
+            if space_saving and min_dist < 0.5:
+                return []
             if self.steerTo(self.getNode(near), node):
                 return [near]
             return []
@@ -199,18 +217,17 @@ class PRM():
         sorted_dlist = []
         for i in range(self.graph.size):
             sorted_dlist.append((dlist[i], i))
-        dlist.sort()
+        sorted_dlist.sort()
         for i in range(min(split, self.graph.size)):
             dist, ind = sorted_dlist[i]
             if ind not in nears:
                 if self.steerTo(self.getNode(ind), node):
                     if (space_saving and dist > 0.5) or not space_saving:
                         nears.append(ind)
+        # if closest node is within 0.5 on space saver, add flag so node is not added
+        if space_saving and sorted_dlist[0][0] < 0.5:
+            nears.insert(0, -1)
         return nears
-
-
-
-
     # saves the graph of the road map so it can be used later to generate paths
     def save():
         pass
@@ -221,7 +238,7 @@ class PRM():
         plt.clf()
         self.env.visualize()
         if iter >= 0:
-            plt.text(-1, -1, str(iter), fontsize=10, color='blue')
+            plt.text(-1, -1, 'n=' + str(iter), fontsize=10, color='blue')
         if self.tree:    
             for node in self.graph.v:
                 if node.parent is not None:
@@ -248,6 +265,7 @@ class PRM():
 # graph data structure
 class Graph():
     def __init__(self):
+        self.root = None
         self.size = 0
         self.v = []
         self.e = []
