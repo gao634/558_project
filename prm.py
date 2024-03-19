@@ -105,16 +105,16 @@ class PRM():
                 cost = distNode(v, start)
                 if cost < start_nearest_dist:
                     start_nearest = v
-                    start_nerest_dist = cost
+                    start_nearest_dist = cost
             if self.steerTo(v, goal):
                 cost = distNode(v, goal)
                 if cost < goal_nearest_dist:
                     goal_nearest = v
-                    goal_nerest_dist = cost
+                    goal_nearest_dist = cost
         # if road map sucks
         if not start_nearest or not goal_nearest:
             return None
-        path = []
+        path = [start]
         cost = 0
         # path finding for tree structure
         if self.tree:
@@ -123,7 +123,26 @@ class PRM():
             goal_path = []
             temp = start_nearest
             while temp is not self.graph.root:
-
+                start_path.append(temp)
+                temp = temp.parent
+            temp = goal_nearest
+            while temp is not self.graph.root:
+                goal_path.append(temp)
+                temp = temp.parent
+            #check divergence
+            for i in range(self.graph.v):
+                if start_path[-1-i] is not goal_path[-1-i]:
+                    diverge = i
+                    start_cost = start_nearest.cost - start_path[-1-i].cost
+                    goal_cost = goal_nearest.cost - goal_path[-1-i].cost
+                    break
+            for i in range(len(start_path)-diverge):
+                path.append(start_path[i])
+            path.append(start_path[-i])
+            for i in range(len(goal_path)-diverge):
+                path.append(goal_path[diverge-i])
+            path.append(goal)
+            cost = goal_cost + start_cost + start_nearest_dist + goal_nearest_dist
         # path finding for graph (dijkstras)
         else:
             pass
