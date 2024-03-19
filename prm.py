@@ -55,7 +55,7 @@ class PRM():
         # determines if the prm is a graph or tree structure
         # get nearest will return a single node if tree, multiple if graph
         # if tree, graph.e and graph.regions will be empty, node.cost will be distance from root
-        # if graph, graph.root, node.parent and node.children will be empty
+        # if graph, node.parent and node.children will be empty
         self.tree = tree
     def plan(self, n_iters=1000, animate=False, space_saving=True, split=2):
         for i in range(n_iters):
@@ -65,8 +65,6 @@ class PRM():
             nears = self.getNearest(node, split, space_saving)
             # if graph is empty
             if nears is None:
-                if self.tree:
-                    self.graph.root = Node
                 self.addNode(node)
                 if animate:
                     self.visualize(node, i)
@@ -92,9 +90,9 @@ class PRM():
     def getPath(self, start_coord, goal_coord):
         # if coords are in collision
         if self.collision(start_coord) or self.collision(goal_coord):
-            return None
-        start = Node(start_coord)
-        goal = Node(goal_coord)
+            return None, 0
+        start = Node(start_coord[0], start_coord[1])
+        goal = Node(goal_coord[0], goal_coord[1])
         # steer to every node and connect to the closest ones
         start_nearest = None
         start_nearest_dist = float('inf')
@@ -113,7 +111,7 @@ class PRM():
                     goal_nearest_dist = cost
         # if road map sucks
         if not start_nearest or not goal_nearest:
-            return None
+            return None, 0
         path = [start]
         cost = 0
         # path finding for tree structure
@@ -122,15 +120,17 @@ class PRM():
             start_path = []
             goal_path = []
             temp = start_nearest
-            while temp is not self.graph.root:
+            while temp is not self.getNode(0):
                 start_path.append(temp)
-                temp = temp.parent
+                temp = self.getNode(temp.parent)
             temp = goal_nearest
-            while temp is not self.graph.root:
+            while temp is not self.getNode(0):
                 goal_path.append(temp)
-                temp = temp.parent
+                temp = self.getNode(temp.parent)
+            start_path.append(self.getNode(0))
+            goal_path.append(self.getNode(0))
             #check divergence
-            for i in range(self.graph.v):
+            for i in range(self.graph.size):
                 if start_path[-1-i] is not goal_path[-1-i]:
                     diverge = i
                     start_cost = start_nearest.cost - start_path[-1-i].cost
@@ -138,9 +138,8 @@ class PRM():
                     break
             for i in range(len(start_path)-diverge):
                 path.append(start_path[i])
-            path.append(start_path[-i])
             for i in range(len(goal_path)-diverge):
-                path.append(goal_path[diverge-i])
+                path.append(goal_path[len(goal_path)-diverge-i])
             path.append(goal)
             cost = goal_cost + start_cost + start_nearest_dist + goal_nearest_dist
         # path finding for graph (dijkstras)
@@ -248,10 +247,10 @@ class PRM():
             nears.insert(0, -1)
         return nears
     # saves the graph of the road map so it can be used later to generate paths
-    def save():
+    def save(self, file_path):
         pass
     # loads graph from data file for visuals
-    def load():
+    def load(self, file_path):
         pass
     def visualize(self, node=None, iter=-1):
         plt.clf()
@@ -269,7 +268,7 @@ class PRM():
                         [self.getNode(edge[0]).y, self.getNode(edge[1]).y], '-g')
         for i in range(self.graph.size):
             plt.plot([self.getNode(i).x], [self.getNode(i).y], '-og')
-            #plt.text(self.getNode(i).x + 0.03, self.getNode(i).y + 0.03, str(i), fontsize=10, color='blue')
+            plt.text(self.getNode(i).x + 0.03, self.getNode(i).y + 0.03, str(i), fontsize=10, color='blue')
         if node is not None:
             plt.plot(node.x, node.y, '^r')
         ax = plt.gca()
@@ -284,7 +283,6 @@ class PRM():
 # graph data structure
 class Graph():
     def __init__(self):
-        self.root = None
         self.size = 0
         self.v = []
         self.e = []
@@ -292,11 +290,11 @@ class Graph():
 
 # node data structure
 class Node():
-    def __init__(self, x, y, parent=None):
+    def __init__(self, x, y):
         self.x = x
         self.y = y
         self.cost = 0.0
-        self.parent = parent
+        self.parent = None
         self.children = set()
     def coord(self):
         return (self.x, self.y)

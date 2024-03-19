@@ -14,25 +14,25 @@ def generateENV(l, w, density):
             if rnd < density:
                 env[i][j] = 1
 
+def showPath(path):
+    if path is None:
+        print("no path found")
+        return
+    for n in range(1, len(path)):
+        plt.plot([path[n].x, path[n-1].x],[path[n].y, path[n-1].y], '-or')
+
 def showPRM(args):
-    map = prm.PRM(tree=False)
+    map = prm.PRM(tree=True)
     map.env.load('./env_0.txt')
     time1 = time.time()
-    map.plan(250, True, True, 2)
+    map.plan(500, False, True, 2)
     time2 = time.time()
     print(time2 - time1)
     map.visualize()
     print(map.graph.size)
-    #print(map.graph.e)
-    a = prm.Node(0.9648, 1.1297)
-    b = prm.Node(1.3363, 0.8655)
-    #map.addNode(a)
-    #map.addNode(b)
-    #map.addEdge(0, 1)
-    #map.visualize()
-    #print(map.steerTo(a, b))
-    #for i in range(map.graph.size):
-    #   print(map.getNode(i).x, map.getNode(i).y)
+    path, cost = map.getPath((0.5, 9.5), (9.5, 0.5))
+    showPath(path)
+    print(cost)
 
 
 def main(args):
