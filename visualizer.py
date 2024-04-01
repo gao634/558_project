@@ -25,7 +25,7 @@ def showPRM(args):
     map = prm.PRM(tree=True)
     map.env.load('./env_0.txt')
     time1 = time.time()
-    map.plan(500, False, True, 2)
+    map.plan(500, True, True, 2)
     time2 = time.time()
     print(time2 - time1)
     map.visualize()

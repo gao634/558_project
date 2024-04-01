@@ -17,7 +17,7 @@ PRM-Guided Local RL Controller Part 1: Classical Component
 
 ## Usage
 
-Currently, args in visualizer.py are not used. Directly run visualizer.py to run PRM. Change inputs directly in code as needed
+Currently, args in visualizer.py are not used. Directly run visualizer.py to run PRM. Change inputs directly in code as needed. Path finding for graph not implemented yet.
 
 ## Author
 
