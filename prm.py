@@ -27,10 +27,13 @@ def cleanup(event):
 
 # this class loads an environment with obstacles to run PRM on
 class ENV():
-    def __init__(self, length=20, width=20, obs=[]):
-        self.length = length
-        self.width = width
-        self.obs=obs   
+    def __init__(self, path=None):
+        if path is not None:
+            self.load(path)
+        else:
+            self.length = 20
+            self.width = 20
+            self.obs=[]
     def load(self, path):
         if path.endswith('.txt'):
             self.obs = np.loadtxt(path, np.int32)
@@ -48,10 +51,13 @@ class ENV():
 
 # this class creates the road map. one rm is created per env to generate paths
 class PRM():
-    def __init__(self, env=ENV(), step_size=0.01, tree=False):
+    def __init__(self, env=ENV(), step_size=0.01, tree=False, geom='point'):
         self.env = env
         self.step_size = step_size
         self.graph = Graph()
+        # for collisions, 'circle' for turtlebot
+        self.geom = geom
+        self.turtlebot_radius = 0.18
         # determines if the prm is a graph or tree structure
         # get nearest will return a single node if tree, multiple if graph
         # if tree, graph.e and graph.regions will be empty, node.cost will be distance from root
@@ -161,16 +167,40 @@ class PRM():
     # returns false if no collision
     def collision(self, pos):
         x, y = pos
-        if x > self.env.length or y > self.env.width:
-            return True
-        if x < 0 or y < 0:
-            return True
-        for i in range(self.env.length):
-            for j in range(self.env.width):
-                if self.env.obs[i][j]:
-                    if abs(i - x + 0.5) < 0.5 and abs(j - y + 0.5) < 0.5:
-                        return True
-        return False      
+        if self.geom == 'point':
+            if x > self.env.length or y > self.env.width:
+                return True
+            if x < 0 or y < 0:
+                return True
+            for i in range(self.env.length):
+                for j in range(self.env.width):
+                    if self.env.obs[i][j]:
+                        if abs(i - x + 0.5) < 0.5 and abs(j - y + 0.5) < 0.5:
+                            return True
+            return False   
+        elif self.geom == 'circle':
+            if x > self.env.length - self.turtlebot_radius or y > self.env.width - self.turtlebot_radius:
+                return True
+            if x < self.turtlebot_radius or y < self.turtlebot_radius:
+                return True
+            cf = False
+            for i in range(self.env.length):
+                for j in range(self.env.width):
+                    if self.env.obs[i][j]:
+                        if abs(i - x + 0.5) > 0.5 + self.turtlebot_radius:
+                            cf = True
+                        elif abs(j - y + 0.5) > 0.5 + self.turtlebot_radius:
+                            cf = True
+                        #hard code corners, ox and oy are bottom left corner of obstacle
+                        elif x < i and y < j and dist((i, j), pos) < 1:
+                            cf = True
+                        elif x < i and y > j + 1 and dist((i, j + 1), pos) > 1:
+                            cf = True
+                        elif x > i + 1 and y < j and dist((i + 1, j), pos) < 1:
+                            cf = True
+                        elif x > i + 1 and y > j + 1 and dist((i, j + 1), pos) > 1:
+                            cf = True
+            return cf   
     def generateSample(self):
         x = np.random.uniform(0, self.env.length)
         y = np.random.uniform(0, self.env.width)

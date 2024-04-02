@@ -13,7 +13,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-				<mesh filename="data/textured_sphere_smooth.obj" scale="0.1 0.1 0.1"/>
+				<mesh filename="meshes/textured_sphere_smooth.obj" scale="0.1 0.1 0.1"/>
       </geometry>
       <material name="fluorescentgreen" >
         <color rgba="0.03137254901960784 1.0 0.03137254901960784 1.0" />
