@@ -278,10 +278,36 @@ class PRM():
         return nears
     # saves the graph of the road map so it can be used later to generate paths
     def save(self, file_path):
-        pass
+        num_points = self.graph.size
+        num_edges = len(self.graph.e)
+        data = [num_points]
+        for vertex in self.graph.v:
+            data.append(vertex.coord())
+        data.append(num_edges)
+        for edge in self.graph.e:
+            data.append(edge)
+        with open(file_path, "w") as f:
+            for item in data:
+                if isinstance(item, tuple):
+                    line = " ".join(map(str, item)) + "\n"
+                else:
+                    line = str(item) + "\n"
+                f.write(line)
     # loads graph from data file for visuals
     def load(self, file_path):
-        pass
+        with open(file_path, "r") as f:
+            for i, line in enumerate(f):
+                line.strip()
+                if i == 0:
+                    self.graph.size = int(line)
+                elif i <= self.graph.size:
+                    elements = line.split()
+                    self.graph.v.append(Node(np.float32(elements[0]), np.float32(elements[1])))
+                elif i == self.graph.size + 1:
+                    num_edges = int(line)
+                else:
+                    elements = line.split()
+                    self.graph.e.append((int(elements[0]), int(elements[1]), np.float32(elements[2])))
     def visualize(self, node=None, iter=-1):
         plt.clf()
         self.env.visualize()
@@ -316,6 +342,7 @@ class Graph():
         self.size = 0
         self.v = []
         self.e = []
+        self.edge_matrix = []
         self.regions = []
 
 # node data structure
@@ -328,3 +355,8 @@ class Node():
         self.children = set()
     def coord(self):
         return (self.x, self.y)
+map = PRM()
+map.env.load('env_0.txt')
+map.load('test_prm.txt')
+map.visualize()
+plt.show()
