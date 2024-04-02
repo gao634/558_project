@@ -2,9 +2,9 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-import os
-import copy
 import sys
+import heapq
+
 
 # taken from assignment 1 part 2
 def diff(v1, v2):
@@ -89,20 +89,22 @@ class PRM():
                 self.addEdge(near, index)
                 if animate:
                     self.visualize(node, i)
+        self.cleanRegions()
+        self.getEdgeMatrix()
         print("planning complete")
     # connect regions, called outside of loop to reduce computation costs
     def cleanRegions(self):
-        # add edge matrix for dijkstras
-        if not self.tree:
-            self.graph.edge_matrix = np.full((self.graph.size, self.graph.size), -1)
-            for edge in self.graph.e:
-                self.graph.edge_matrix[edge[0]][edge[1]] = edge[2]
-                self.graph.edge_matrix[edge[1]][edge[0]] = edge[2]
         if len(self.graph.regions) > 1:
             for i in range(500):
                 # generate random point and see if we can connect regions
                 print('uh oh')
-
+    def getEdgeMatrix(self):
+        # add edge matrix for dijkstras
+        if not self.tree:
+            self.graph.edge_matrix = np.full((self.graph.size, self.graph.size), -1, np.float32)
+            for edge in self.graph.e:
+                self.graph.edge_matrix[edge[0]][edge[1]] = edge[2]
+                self.graph.edge_matrix[edge[1]][edge[0]] = edge[2]
     def getPath(self, start_coord, goal_coord):
         # if coords are in collision
         if self.collision(start_coord) or self.collision(goal_coord):
@@ -160,7 +162,39 @@ class PRM():
             cost = goal_cost + start_cost + start_nearest_dist + goal_nearest_dist
         # path finding for graph (dijkstras)
         else:
-            pass
+            print(self.graph.edge_matrix)
+            start_ind = self.getIndex(start_nearest)
+            goal_ind = self.getIndex(goal_nearest)
+            distances = np.full(self.graph.size, float('inf'))
+            distances[start_ind] = 0
+            prev = np.full(self.graph.size, -1)
+            visited = []
+            pq = []
+            heapq.heappush(pq, (0, start_ind))
+            while len(pq):
+                _, curr = heapq.heappop(pq)
+                print(curr)
+                if curr in visited:
+                    continue
+                visited.append(curr)
+                currd = distances[curr]
+                for i, edge in enumerate(self.graph.edge_matrix[curr]):
+                    if edge > 0 and distances[i] > currd + edge:
+                        print(i)
+                        distances[i] = currd + edge
+                        prev[i] = curr
+                        heapq.heappush(pq, (edge, i))
+            path = [goal]
+            i = goal_ind
+            cost += goal_nearest_dist + start_nearest_dist
+            while prev[i] != -1:
+                path.insert(-1, self.getNode(i))
+                cost += self.graph.edge_matrix[i][prev[i]]
+                i = prev[i]
+            path.insert(-1, start)
+            return path, cost
+                
+
         return path, cost
     # returns true if no collision
     def steerTo(self, start, goal):
@@ -245,6 +279,8 @@ class PRM():
                             self.graph.regions.append(combined)
     def getNode(self, index):
         return self.graph.v[index]
+    def getIndex(self, node):
+        return self.graph.v.index(node)
     def getNearest(self, node, split, space_saving):
         if not self.graph.size:
             return None
@@ -321,6 +357,7 @@ class PRM():
                 else:
                     elements = line.split()
                     self.graph.e.append((int(elements[0]), int(elements[1]), np.float32(elements[2])))
+        self.getEdgeMatrix()
     def visualize(self, node=None, iter=-1):
         plt.clf()
         self.env.visualize()
@@ -359,7 +396,7 @@ class Graph():
         self.size = 0
         self.v = []
         self.e = []
-        self.edge_matrix = []
+        self.edge_matrix = None
         self.regions = []
 
 # node data structure
