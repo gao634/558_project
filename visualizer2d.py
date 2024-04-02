@@ -22,7 +22,7 @@ def showPath(path):
         plt.plot([path[n].x, path[n-1].x],[path[n].y, path[n-1].y], '-or')
 
 def showPRM(args):
-    map = prm.PRM(tree=False, geom='point')
+    map = prm.PRM(tree=False, geom='circle')
     map.env.load('./env_0.txt')
     time1 = time.time()
     map.plan(500, True, True, 2)

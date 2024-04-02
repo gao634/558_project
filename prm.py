@@ -92,7 +92,17 @@ class PRM():
         print("planning complete")
     # connect regions, called outside of loop to reduce computation costs
     def cleanRegions(self):
-        pass
+        # add edge matrix for dijkstras
+        if not self.tree:
+            self.graph.edge_matrix = np.full((self.graph.size, self.graph.size), -1)
+            for edge in self.graph.e:
+                self.graph.edge_matrix[edge[0]][edge[1]] = edge[2]
+                self.graph.edge_matrix[edge[1]][edge[0]] = edge[2]
+        if len(self.graph.regions) > 1:
+            for i in range(500):
+                # generate random point and see if we can connect regions
+                print('uh oh')
+
     def getPath(self, start_coord, goal_coord):
         # if coords are in collision
         if self.collision(start_coord) or self.collision(goal_coord):
@@ -183,24 +193,27 @@ class PRM():
                 return True
             if x < self.turtlebot_radius or y < self.turtlebot_radius:
                 return True
-            cf = False
+            collision = False
             for i in range(self.env.length):
                 for j in range(self.env.width):
                     if self.env.obs[i][j]:
+                        cf = False
                         if abs(i - x + 0.5) > 0.5 + self.turtlebot_radius:
                             cf = True
                         elif abs(j - y + 0.5) > 0.5 + self.turtlebot_radius:
                             cf = True
                         #hard code corners, ox and oy are bottom left corner of obstacle
-                        elif x < i and y < j and dist((i, j), pos) < 1:
+                        elif x < i and y < j and dist((i, j), pos) > self.turtlebot_radius:
                             cf = True
-                        elif x < i and y > j + 1 and dist((i, j + 1), pos) > 1:
+                        elif x < i and y > j + 1 and dist((i, j + 1), pos) > self.turtlebot_radius:
                             cf = True
-                        elif x > i + 1 and y < j and dist((i + 1, j), pos) < 1:
+                        elif x > i + 1 and y < j and dist((i + 1, j), pos) > self.turtlebot_radius:
                             cf = True
-                        elif x > i + 1 and y > j + 1 and dist((i, j + 1), pos) > 1:
+                        elif x > i + 1 and y > j + 1 and dist((i, j + 1), pos) > self.turtlebot_radius:
                             cf = True
-            return cf   
+                        if not cf:
+                            collision = True
+            return collision
     def generateSample(self):
         x = np.random.uniform(0, self.env.length)
         y = np.random.uniform(0, self.env.width)
@@ -323,7 +336,11 @@ class PRM():
                 plt.plot([self.getNode(edge[0]).x, self.getNode(edge[1]).x],
                         [self.getNode(edge[0]).y, self.getNode(edge[1]).y], '-g')
         for i in range(self.graph.size):
-            plt.plot([self.getNode(i).x], [self.getNode(i).y], '-og')
+            if self.geom == 'point':
+                plt.plot([self.getNode(i).x], [self.getNode(i).y], '-og')
+            if self.geom == 'circle':
+                circle = mpatches.Circle((self.getNode(i).x, self.getNode(i).y), self.turtlebot_radius, color="green")
+                plt.gca().add_patch(circle)
             plt.text(self.getNode(i).x + 0.03, self.getNode(i).y + 0.03, str(i), fontsize=10, color='blue')
         if node is not None:
             plt.plot(node.x, node.y, '^r')
@@ -355,8 +372,8 @@ class Node():
         self.children = set()
     def coord(self):
         return (self.x, self.y)
-map = PRM()
-map.env.load('env_0.txt')
-map.load('test_prm.txt')
-map.visualize()
-plt.show()
+#map = PRM()
+#map.env.load('env_0.txt')
+#map.load('test_prm.txt')
+#map.visualize()
+#plt.show()
