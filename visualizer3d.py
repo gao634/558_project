@@ -21,38 +21,50 @@ def loadENV(path):
 
 # we only have 1 agent, our turtlebot
 def loadAgent(x, y, path='assets/turtlebot.urdf'):
-    p.loadURDF(path, [x, y, 0])
+    id = p.loadURDF(path, [x, y, 3])
+    return id
+
+def movementDemo(id):
+    camera_params = p.getDebugVisualizerCamera()
+    dist = camera_params[10]
+    yaw = camera_params[8]
+    pitch = camera_params[9]
+    x = camera_params[11][0]
+    y = camera_params[11][1]
+    keys = p.getKeyboardEvents()
+    
+    for k, v in keys.items():
+        if v & p.KEY_WAS_TRIGGERED:
+            if k == p.B3G_UP_ARROW:
+                print('up')
+                p.setJointMotorControl2(id, 0, p.VELOCITY_CONTROL, targetVelocity=0, force=1)
+                p.setJointMotorControl2(id, 1, p.VELOCITY_CONTROL, targetVelocity=0, force=-1)
+            elif k == p.B3G_DOWN_ARROW:
+                print('down')
+                p.setJointMotorControl2(id, 0, p.VELOCITY_CONTROL, targetVelocity=0, force=-1)
+                p.setJointMotorControl2(id, 1, p.VELOCITY_CONTROL, targetVelocity=0, force=1)
+            elif k == p.B3G_LEFT_ARROW:
+                print('left')
+                # left joint is 0, right joint is 1
+                p.setJointMotorControl2(id, 0, p.VELOCITY_CONTROL, targetVelocity=0, force=-1)
+                #p.setJointMotorControl2(id, 1, p.VELOCITY_CONTROL, targetVelocity=0, force=1)
+            elif k == p.B3G_RIGHT_ARROW:
+                print('right')
+                p.setJointMotorControl2(id, 0, p.VELOCITY_CONTROL, targetVelocity=0, force=1)
+                #p.setJointMotorControl2(id, 1, p.VELOCITY_CONTROL, targetVelocity=0, force=-1)
+    basePos = p.getBasePositionAndOrientation(id)
 
 
 def main(args):
     p.connect(p.GUI)
     loadENV('env_0.txt')
-    loadAgent(0.5, 0.5)
-    p.loadURDF('assets/cylinder.urdf', [1.5, 0.5, 0.5])
+    id = loadAgent(0.5, 0.5)
+    p.loadURDF('assets/cylinder.urdf', [1.5, 0.5, 3])
+    p.loadURDF('assets/ground.urdf', [0, 0, -0.1])
+    p.setGravity(0, 0, -9.81) 
     while True:
-        camera_params = p.getDebugVisualizerCamera()
-        dist = camera_params[10]
-        yaw = camera_params[8]
-        pitch = camera_params[9]
-        x = camera_params[11][0]
-        y = camera_params[11][1]
-        keys = p.getKeyboardEvents()
-        
-        # Adjust camera parameters based on key presses
-        for k, v in keys.items():
-            if v & p.KEY_WAS_TRIGGERED:
-                if k == p.B3G_UP_ARROW:
-                    y += 0.3
-                elif k == p.B3G_DOWN_ARROW:
-                    y -= 0.3
-                elif k == p.B3G_LEFT_ARROW:
-                    x -= 0.3
-                elif k == p.B3G_RIGHT_ARROW:
-                    x += 0.3
-        
-        # Set camera position and orientation
-        p.resetDebugVisualizerCamera(dist, yaw, pitch, [x, y, 0])
-        
+        movementDemo(id)
+        p.stepSimulation()
         # Sleep to avoid consuming too much CPU
-        time.sleep(0.1)
+        time.sleep(0.01)
 main(args=None)
