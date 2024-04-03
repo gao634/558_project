@@ -58,6 +58,10 @@ class PRM():
         # for collisions, 'circle' for turtlebot
         self.geom = geom
         self.turtlebot_radius = 0.18
+        if geom == 'point':
+            self.space_saving_dist = 0.5
+        elif geom == 'cirlce':
+            self.space_saving_dist = 0.5 - self.turtlebot_radius
         # determines if the prm is a graph or tree structure
         # get nearest will return a single node if tree, multiple if graph
         # if tree, graph.e and graph.regions will be empty, node.cost will be distance from root
@@ -90,7 +94,7 @@ class PRM():
                 if animate:
                     self.visualize(node, i)
         self.cleanRegions()
-        self.getEdgeMatrix()
+        self.graph.getEdgeMatrix()
         print("planning complete")
     # connect regions, called outside of loop to reduce computation costs
     def cleanRegions(self):
@@ -98,13 +102,6 @@ class PRM():
             for i in range(500):
                 # generate random point and see if we can connect regions
                 print('uh oh')
-    def getEdgeMatrix(self):
-        # add edge matrix for dijkstras
-        if not self.tree:
-            self.graph.edge_matrix = np.full((self.graph.size, self.graph.size), -1, np.float32)
-            for edge in self.graph.e:
-                self.graph.edge_matrix[edge[0]][edge[1]] = edge[2]
-                self.graph.edge_matrix[edge[1]][edge[0]] = edge[2]
     def getPath(self, start_coord, goal_coord):
         # if coords are in collision
         if self.collision(start_coord) or self.collision(goal_coord):
@@ -162,7 +159,6 @@ class PRM():
             cost = goal_cost + start_cost + start_nearest_dist + goal_nearest_dist
         # path finding for graph (dijkstras)
         else:
-            print(self.graph.edge_matrix)
             start_ind = self.getIndex(start_nearest)
             goal_ind = self.getIndex(goal_nearest)
             distances = np.full(self.graph.size, float('inf'))
@@ -173,7 +169,6 @@ class PRM():
             heapq.heappush(pq, (0, start_ind))
             while len(pq):
                 _, curr = heapq.heappop(pq)
-                print(curr)
                 if curr in visited:
                     continue
                 visited.append(curr)
@@ -185,16 +180,19 @@ class PRM():
                         prev[i] = curr
                         heapq.heappush(pq, (edge, i))
             path = [goal]
-            i = goal_ind
+            ind = goal_ind
+            path_ind = []
             cost += goal_nearest_dist + start_nearest_dist
-            while prev[i] != -1:
-                path.insert(-1, self.getNode(i))
-                cost += self.graph.edge_matrix[i][prev[i]]
-                i = prev[i]
-            path.insert(-1, start)
-            return path, cost
-                
-
+            #for i in range(self.graph.size):
+            #    print(i, distances[i], prev[i])
+            while ind != start_ind:
+                path_ind.append(ind)
+                path.insert(0, self.getNode(ind))
+                cost += self.graph.edge_matrix[ind][prev[ind]]
+                ind = prev[ind]
+            path.insert(0, start_nearest)
+            path.insert(0, start)
+            #print(path_ind)
         return path, cost
     # returns true if no collision
     def steerTo(self, start, goal):
@@ -290,7 +288,7 @@ class PRM():
         min_dist = min(dlist)
         near = dlist.index(min_dist)
         if self.tree:
-            if space_saving and min_dist < 0.5:
+            if space_saving and min_dist < self.space_saving_dist:
                 return []
             if self.steerTo(self.getNode(near), node):
                 return [near]
@@ -305,7 +303,7 @@ class PRM():
             for n in region:
                 distance = distNode(node, self.getNode(n))
                 if distance < min_dist:
-                    if (space_saving and distance > 0.5) or not space_saving:
+                    if (space_saving and distance > self.space_saving_dist) or not space_saving:
                         min_dist = distance
                         nearest = n
             if nearest != -1 and self.steerTo(node, self.getNode(nearest)):
@@ -319,10 +317,10 @@ class PRM():
             dist, ind = sorted_dlist[i]
             if ind not in nears:
                 if self.steerTo(self.getNode(ind), node):
-                    if (space_saving and dist > 0.5) or not space_saving:
+                    if (space_saving and dist > self.space_saving_dist) or not space_saving:
                         nears.append(ind)
         # if closest node is within 0.5 on space saver, add flag so node is not added
-        if space_saving and sorted_dlist[0][0] < 0.5:
+        if space_saving and sorted_dlist[0][0] < self.space_saving_dist:
             nears.insert(0, -1)
         return nears
     # saves the graph of the road map so it can be used later to generate paths
@@ -357,7 +355,8 @@ class PRM():
                 else:
                     elements = line.split()
                     self.graph.e.append((int(elements[0]), int(elements[1]), np.float32(elements[2])))
-        self.getEdgeMatrix()
+        if not self.tree:
+            self.graph.getEdgeMatrix()
     def visualize(self, node=None, iter=-1):
         plt.clf()
         self.env.visualize()
@@ -398,7 +397,16 @@ class Graph():
         self.e = []
         self.edge_matrix = None
         self.regions = []
-
+    def getEdgeMatrix(self):
+        # add edge matrix for dijkstras
+        self.edge_matrix = []
+        for i in range(self.size):
+            self.edge_matrix.append([])
+            for j in range(self.size):
+                self.edge_matrix[i].append(-1)
+        for edge in self.e:
+            self.edge_matrix[edge[0]][edge[1]] = edge[2]
+            self.edge_matrix[edge[1]][edge[0]] = edge[2]
 # node data structure
 class Node():
     def __init__(self, x, y):

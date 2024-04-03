@@ -18,16 +18,17 @@ def showPath(path):
     if path is None:
         print("no path found")
         return
+    #plt.text(path[0].x - 0.5, path[0].y + 0.03, '0', fontsize=10, color='green')
     for n in range(1, len(path)):
         plt.plot([path[n].x, path[n-1].x],[path[n].y, path[n-1].y], '-or')
+        #plt.text(path[n].x - 0.5, path[n].y + 0.03, str(n), fontsize=10, color='green')
 
 def showPRM(args):
     map = prm.PRM(tree=False, geom='circle')
     map.env.load('./env_0.txt')
     map.load('test_prm.txt')
-    print(map.graph.edge_matrix)
     time1 = time.time()
-    #map.plan(500, True, True, 2)
+    #map.plan(500, False, True, 2)
     #map.save('test_prm.txt')
     time2 = time.time()
     #print(time2 - time1)
