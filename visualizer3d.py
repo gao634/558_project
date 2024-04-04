@@ -21,24 +21,64 @@ def loadENV(path):
 
 # we only have 1 agent, our turtlebot
 def loadAgent(x, y, path='assets/turtlebot.urdf'):
-    id = p.loadURDF(path, [x, y, 3])
+    id = p.loadURDF(path, [x, y, .5])
     return id
 
-def movementDemo(id):
-    camera_params = p.getDebugVisualizerCamera()
-    dist = camera_params[10]
-    yaw = camera_params[8]
-    pitch = camera_params[9]
-    x = camera_params[11][0]
-    y = camera_params[11][1]
-    keys = p.getKeyboardEvents()
-    
+def velocityDemo(id, vel):
+    keys = p.keys = p.getKeyboardEvents()
     for k, v in keys.items():
         if v & p.KEY_WAS_TRIGGERED:
             if k == p.B3G_UP_ARROW:
-                print('up')
-                p.setJointMotorControl2(id, 0, p.VELOCITY_CONTROL, targetVelocity=0, force=1)
-                p.setJointMotorControl2(id, 1, p.VELOCITY_CONTROL, targetVelocity=0, force=-1)
+                vel += 10
+                p.setJointMotorControl2(id, 0, p.VELOCITY_CONTROL, targetVelocity=vel, force=100)
+                p.setJointMotorControl2(id, 1, p.VELOCITY_CONTROL, targetVelocity=vel, force=100)
+            elif k == p.B3G_DOWN_ARROW:
+                vel -= 10
+                p.setJointMotorControl2(id, 0, p.VELOCITY_CONTROL, targetVelocity=vel, force=100)
+                p.setJointMotorControl2(id, 1, p.VELOCITY_CONTROL, targetVelocity=vel, force=100)
+            elif k == p.B3G_LEFT_ARROW:
+                p.setJointMotorControl2(id, 0, p.VELOCITY_CONTROL, targetVelocity=-vel, force=100)
+                p.setJointMotorControl2(id, 1, p.VELOCITY_CONTROL, targetVelocity=vel, force=100)
+            elif k == p.B3G_RIGHT_ARROW:
+                p.setJointMotorControl2(id, 0, p.VELOCITY_CONTROL, targetVelocity=vel, force=100)
+                p.setJointMotorControl2(id, 1, p.VELOCITY_CONTROL, targetVelocity=-vel, force=100)
+    pos, orn = p.getBasePositionAndOrientation(id)
+    x, y, z = pos
+    rr, rp, ry = p.getEulerFromQuaternion(orn)
+    p.resetDebugVisualizerCamera(cameraDistance=4, cameraYaw=ry*180/np.pi-90, cameraPitch=-60, cameraTargetPosition=pos)
+    joint_state = p.getJointState(bodyUniqueId=id, jointIndex=0)
+    applied_force = joint_state[3]
+    print("Applied force:", applied_force)
+    return vel
+
+def movementDemo(id):
+    k = p.getKeyboardEvents()
+    is_button_pressed = False
+    # Check if the up arrow key is pressed
+    if k == p.B3G_UP_ARROW:
+        print('up')
+        # Set the button state to pressed
+        is_button_pressed = True
+    elif k == p.B3G_UP_ARROW + p.KEY_WAS_RELEASED:
+        # Set the button state to released
+        is_button_pressed = False
+
+    # Apply torque if the button is pressed
+    if is_button_pressed:
+        print('Moving forward')
+        # Apply equal forces to both wheels to move forward
+        force = 100  # Adjust the force as needed
+        p.setJointMotorControl2(id, 0, p.TORQUE_CONTROL, force=force)
+        p.setJointMotorControl2(id, 1, p.TORQUE_CONTROL, force=force)
+    else:
+        # Stop applying torque if the button is released
+        p.setJointMotorControl2(id, 0, p.TORQUE_CONTROL, force=0)
+        p.setJointMotorControl2(id, 1, p.TORQUE_CONTROL, force=0)
+    for k, v in keys.items():
+        if v & p.KEY_WAS_TRIGGERED:
+            if k == p.B3G_UP_ARROW:
+                p.setJointMotorControl2(id, 0, p.TORQUE_CONTROL, force=force)
+                p.setJointMotorControl2(id, 1, p.TORQUE_CONTROL, force=force)
             elif k == p.B3G_DOWN_ARROW:
                 print('down')
                 p.setJointMotorControl2(id, 0, p.VELOCITY_CONTROL, targetVelocity=0, force=-1)
@@ -52,18 +92,22 @@ def movementDemo(id):
                 print('right')
                 p.setJointMotorControl2(id, 0, p.VELOCITY_CONTROL, targetVelocity=0, force=1)
                 #p.setJointMotorControl2(id, 1, p.VELOCITY_CONTROL, targetVelocity=0, force=-1)
-    basePos = p.getBasePositionAndOrientation(id)
-
+    pos, orn = p.getBasePositionAndOrientation(id)
+    x, y, z = pos
+    rr, rp, ry = p.getEulerFromQuaternion(orn)
+    p.resetDebugVisualizerCamera(cameraDistance=4, cameraYaw=ry-90, cameraPitch=-60, cameraTargetPosition=pos)
 
 def main(args):
     p.connect(p.GUI)
     loadENV('env_0.txt')
     id = loadAgent(0.5, 0.5)
-    p.loadURDF('assets/cylinder.urdf', [1.5, 0.5, 3])
+    #p.loadURDF('assets/cylinder.urdf', [1.5, 0.5, 3])
     p.loadURDF('assets/ground.urdf', [0, 0, -0.1])
     p.setGravity(0, 0, -9.81) 
+    vel = 0
     while True:
-        movementDemo(id)
+        #movementDemo(id)
+        vel = velocityDemo(id, vel)
         p.stepSimulation()
         # Sleep to avoid consuming too much CPU
         time.sleep(0.01)
