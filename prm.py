@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import sys
 import heapq
+import os
 
 
 # taken from assignment 1 part 2
@@ -60,7 +61,7 @@ class PRM():
         self.turtlebot_radius = 0.18
         if geom == 'point':
             self.space_saving_dist = 0.5
-        elif geom == 'cirlce':
+        elif geom == 'circle':
             self.space_saving_dist = 0.5 - self.turtlebot_radius
         # determines if the prm is a graph or tree structure
         # get nearest will return a single node if tree, multiple if graph
@@ -324,7 +325,7 @@ class PRM():
             nears.insert(0, -1)
         return nears
     # saves the graph of the road map so it can be used later to generate paths
-    def save(self, file_path):
+    def save(self, dir_path, file_path):
         num_points = self.graph.size
         num_edges = len(self.graph.e)
         data = [num_points]
@@ -333,6 +334,8 @@ class PRM():
         data.append(num_edges)
         for edge in self.graph.e:
             data.append(edge)
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
         with open(file_path, "w") as f:
             for item in data:
                 if isinstance(item, tuple):
