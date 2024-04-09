@@ -14,6 +14,15 @@ def generateENV(l, w, density):
             if rnd < density:
                 env[i][j] = 1
 
+def getPathData(file):
+    data = np.loadtxt(file, np.float32)
+    return data
+def loadPath(file):
+    data = getPathData(file)
+    path = []
+    for point in data:
+        path.append(prm.Node(point[0], point[1]))
+    return path
 def showPath(path):
     if path is None:
         print("no path found")
@@ -25,8 +34,8 @@ def showPath(path):
 
 def showPRM(args):
     map = prm.PRM(tree=False, geom='circle')
-    map.env.load('./env_0.txt')
-    map.load('test_prm.txt')
+    map.env.load('data/envs/env_0.txt')
+    map.load('data/env0/prm.txt')
     time1 = time.time()
     #map.plan(500, False, True, 2)
     #map.save('test_prm.txt')
@@ -34,9 +43,10 @@ def showPRM(args):
     #print(time2 - time1)
     map.visualize()
     print(map.graph.size)
-    path, cost = map.getPath((0.5, 9.5), (9.5, 0.5))
+    #path, cost = map.getPath((0.5, 9.5), (9.5, 0.5))
+    path = loadPath('data/env0/path1.txt')
     showPath(path)
-    print(cost)
+    #print(cost)
 
 
 def main(args):

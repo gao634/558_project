@@ -3,17 +3,18 @@ import numpy as np
 import argparse
 import prm
 import time
-import lidar as lidar
 import turtlebot_maze_env as maze
 
-def velocityDemo(id, vel):
+def velocityDemo(id, vel, env):
     keys = p.keys = p.getKeyboardEvents()
     for k, v in keys.items():
         if v & p.KEY_WAS_TRIGGERED:
             if k == p.B3G_UP_ARROW:
                 vel += 10
-                p.setJointMotorControl2(id, 0, p.VELOCITY_CONTROL, targetVelocity=vel, force=100)
-                p.setJointMotorControl2(id, 1, p.VELOCITY_CONTROL, targetVelocity=vel, force=100)
+                #p.setJointMotorControl2(id, 0, p.VELOCITY_CONTROL, targetVelocity=vel, force=100)
+                #p.setJointMotorControl2(id, 1, p.VELOCITY_CONTROL, targetVelocity=vel, force=100)
+                _, _, t, c = env.step((1, 1))
+                print(c)
             elif k == p.B3G_DOWN_ARROW:
                 vel -= 10
                 p.setJointMotorControl2(id, 0, p.VELOCITY_CONTROL, targetVelocity=vel, force=100)
@@ -88,10 +89,12 @@ def main(args):
     env.reset()
     env.loadENV('data/envs/env_0.txt')
     env.setPos(0.5, 0.5, 0)
+    env.setGoal((2.5, 0.5))
+    id = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=2, rgbaColor=[1, 0, 0, 1], visualFramePosition=[0, 0, 3])
     vel = 0
     while True:
         #movementDemo(id)
-        vel = velocityDemo(env.rid, vel)
+        vel = velocityDemo(env.rid, vel, env)
         # Sleep to avoid consuming too much CPU
         time.sleep(0.01)
 

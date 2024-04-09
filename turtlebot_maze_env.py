@@ -3,9 +3,9 @@ import numpy as np
 import argparse
 import prm
 import time
-import lidar as lidar
 import matplotlib.pyplot as plt
 import math
+import torch
 
 def diff(v1, v2):
     return [x1 - x2 for x1, x2 in zip(v1, v2)]
@@ -22,11 +22,16 @@ class Maze:
         self.lidar = lidar
         self.obstacle_id = []
         self.rid = -1
-        self.goal = None
+        self.goal = (-10, -10)
         self.visuals = visuals
         self.goalmarker = -1
+        self.thresh = thresh
+    def getEnvTensor(self):
+        env = torch.tensor(self.env.obs)
+        return env.view(-1)
     def loadENV(self, path):
         env = prm.ENV(path)
+        self.env = env
         # load outer walls
         for x in range(env.length + 1):
             id = p.loadURDF("assets/cube.urdf", [x - 0.5, env.width + 0.5, 0.5])
@@ -48,7 +53,7 @@ class Maze:
         id = p.loadURDF(path, [x, y, 0])
         return id
     def getPos(self):
-        pos, orn = p.getBasePositionAndOrientation(id)
+        pos, orn = p.getBasePositionAndOrientation(self.rid)
         x, y, z = pos
         rr, rp, ry = p.getEulerFromQuaternion(orn)
         return (x, y, z, rr, rp, ry)
@@ -71,14 +76,16 @@ class Maze:
             if contact:
                 return True
         return False
-    def step(self, action):
+    def step(self, action=None):
+        if action is None:
+            return self.getInput(), 0, False, False
         t0, t1 = action
         p.setJointMotorControl2(self.rid, 0, p.TORQUE_CONTROL, force=t0)
         p.setJointMotorControl2(self.rid, 1, p.TORQUE_CONTROL, force=t1)
         p.stepSimulation()
-        if self.visuals():
+        if self.visuals:
             time.sleep(0.05)
-        data = lidar.getInput(self.rid, self.lidar)
+        data = self.getInput()
         # hit wall or flipped
         collision = False
         # reached goal
@@ -120,7 +127,7 @@ class Maze:
             p.connect(p.GUI)
         else:
             p.connect(p.DIRECT)
-        p.loadURDF('assets/ground.urdf', [0, 0, -0.1])
+        id = p.loadURDF('assets/ground.urdf', [0, 0, -0.1])
         p.setGravity(0, 0, -9.81) 
         self.rid = self.loadAgent(-5, -5)
     def lidarGraph(self, data):

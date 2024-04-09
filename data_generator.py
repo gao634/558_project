@@ -18,23 +18,27 @@ for i in range(num_envs):
     map = prm.PRM(tree=False, geom='circle')
     map.env.load(env_path)
     # get prm
-    map.plan(500, False, True, 2)
+    size = 500
+    map.plan(size, False, True, 2)
+    while not map.cleanRegions():
+        size *= 2
+        map.plan(size, False, True, 2)
     dir = str(root) + str(i)
     prm_path = '/prm.txt'
     map.save(dir, prm_path)
     count = 0
     while count < num_paths:
-        x = np.random() * map.env.length
-        y = np.random() * map.env.width
+        x = np.random.uniform() * map.env.length
+        y = np.random.uniform() * map.env.width
         while map.collision((x, y)):
-            x = np.random() * map.env.length
-            y = np.random() * map.env.width
+            x = np.random.uniform() * map.env.length
+            y = np.random.uniform() * map.env.width
         start = (x, y)
-        x = np.random() * map.env.length
-        y = np.random() * map.env.width
+        x = np.random.uniform() * map.env.length
+        y = np.random.uniform() * map.env.width
         while map.collision((x, y)):
-            x = np.random() * map.env.length
-            y = np.random() * map.env.width
+            x = np.random.uniform() * map.env.length
+            y = np.random.uniform() * map.env.width
         goal = (x, y)
         path, cost = map.getPath(start, goal)
         if path is not None:

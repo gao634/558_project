@@ -100,9 +100,11 @@ class PRM():
     # connect regions, called outside of loop to reduce computation costs
     def cleanRegions(self):
         if len(self.graph.regions) > 1:
-            for i in range(500):
+            return False
+            #for i in range(500):
                 # generate random point and see if we can connect regions
-                print('uh oh')
+                #print('uh oh')
+        return True                
     def getPath(self, start_coord, goal_coord):
         # if coords are in collision
         if self.collision(start_coord) or self.collision(goal_coord):
@@ -176,7 +178,7 @@ class PRM():
                 currd = distances[curr]
                 for i, edge in enumerate(self.graph.edge_matrix[curr]):
                     if edge > 0 and distances[i] > currd + edge:
-                        print(i)
+                        #print(i)
                         distances[i] = currd + edge
                         prev[i] = curr
                         heapq.heappush(pq, (edge, i))
@@ -336,7 +338,7 @@ class PRM():
             data.append(edge)
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
-        with open(file_path, "w") as f:
+        with open(dir_path+file_path, "w") as f:
             for item in data:
                 if isinstance(item, tuple):
                     line = " ".join(map(str, item)) + "\n"

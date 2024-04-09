@@ -1,6 +1,6 @@
 # Project Name
 
-PRM-Guided Local RL Controller Part 1: Classical Component
+PRM-Guided Local RL Controller
 
 ## Table of Contents
 
