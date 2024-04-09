@@ -6,33 +6,6 @@ import time
 import lidar as lidar
 import turtlebot_maze_env as maze
 
-def loadENV(path):
-    env = prm.ENV(path)
-    #p.resetDebugVisualizerCamera(cameraDistance=1.3 * max(env.length, env.width), cameraYaw=45, cameraPitch=-89.9, cameraTargetPosition=[env.length/2, env.width/2, 0])
-    # load outer walls
-    id_list = []
-    for x in range(env.length + 1):
-        id = p.loadURDF("assets/cube.urdf", [x - 0.5, env.width + 0.5, 0.5])
-        id_list.append(id)
-        id = p.loadURDF("assets/cube.urdf", [x + 0.5, - 0.5, 0.5])
-        id_list.append(id)
-    for y in range(env.width + 1):
-        id = p.loadURDF("assets/cube.urdf", [env.length + 0.5, y + 0.5, 0.5])
-        id_list.append(id)
-        id = p.loadURDF("assets/cube.urdf", [-0.5, y - 0.5, 0.5])
-        id_list.append(id)
-    for x in range(env.length):
-        for y in range(env.width):
-            if env.obs[x][y]:
-                id = p.loadURDF("assets/cube.urdf", [x + 0.5, y + 0.5, 0.5])
-                id_list.append(id)
-    return id_list
-
-# we only have 1 agent, our turtlebot
-def loadAgent(x, y, path='assets/turtlebot.urdf'):
-    id = p.loadURDF(path, [x, y, 0])
-    return id
-
 def velocityDemo(id, vel):
     keys = p.keys = p.getKeyboardEvents()
     for k, v in keys.items():
@@ -58,7 +31,9 @@ def velocityDemo(id, vel):
     joint_state = p.getJointState(bodyUniqueId=id, jointIndex=0)
     applied_force = joint_state[3]
     #print("Applied force:", applied_force)
-    print(z, rr, rp)
+    #print(z, rr, rp)
+    p.stepSimulation()
+
     return vel
 
 def movementDemo(id):
@@ -106,34 +81,17 @@ def movementDemo(id):
     x, y, z = pos
     rr, rp, ry = p.getEulerFromQuaternion(orn)
     p.resetDebugVisualizerCamera(cameraDistance=4, cameraYaw=ry-90, cameraPitch=-60, cameraTargetPosition=pos)
-
-def step(action, id, size):
-    t0, t1 = action
-    p.setJointMotorControl2(id, 0, p.TORQUE_CONTROL, force=t0)
-    p.setJointMotorControl2(id, 1, p.TORQUE_CONTROL, force=t1)
     p.stepSimulation()
-    data = lidar.getInput(id, size)
-    # hit wall or flipped
-    collision = False
-    # reached goal
-    terminated = False
-    pos, orn = p.getBasePositionAndOrientation(id)
-    x, y, z = pos
-    rr, rp, ry = p.getEulerFromQuaternion(orn)
-    # robot leaves ground
-    if z > 0.1 or z < -0.5:
-        collision = True
-    if abs(rr) > 10 or abs(rp) > 10:
-        collision = True
-
 
 def main(args):
-    env = maze.Maze(180)
+    env = maze.Maze(180, visuals=True)
     env.reset()
     env.loadENV('data/envs/env_0.txt')
+    env.setPos(0.5, 0.5, 0)
+    vel = 0
     while True:
         #movementDemo(id)
-        vel = velocityDemo(id, vel)
+        vel = velocityDemo(env.rid, vel)
         # Sleep to avoid consuming too much CPU
         time.sleep(0.01)
 
