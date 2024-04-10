@@ -83,8 +83,6 @@ class Maze:
         p.setJointMotorControl2(self.rid, 0, p.TORQUE_CONTROL, force=t0)
         p.setJointMotorControl2(self.rid, 1, p.TORQUE_CONTROL, force=t1)
         p.stepSimulation()
-        if self.visuals:
-            time.sleep(0.05)
         data = self.getInput()
         # hit wall or flipped
         collision = False
@@ -92,6 +90,9 @@ class Maze:
         terminated = False
         x, y, z, rr, rp, ry = self.getPos()
         distance = dist((x,y), self.goal)
+        if self.visuals:
+            p.resetDebugVisualizerCamera(cameraDistance=4, cameraYaw=ry*180/np.pi-90, cameraPitch=-60, cameraTargetPosition=(x, y, z))
+        #    time.sleep(0.05)
         # robot leaves ground
         if z > 0.1 or z < -0.5:
             collision = True
