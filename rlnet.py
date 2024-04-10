@@ -18,7 +18,8 @@ class Policy(nn.Module):
         x = self.tan(x)
         x = self.l2(x)
         x = self.tan(x)
-        mat = torch.tensor([[0.2, 0.1], [0.1, 0.1]])
+        x = x * 2
+        mat = torch.tensor([[0.1, 0.1], [0.1, 0.1]])
         mat = mat.to(self.device)
         distr = torch.distributions.MultivariateNormal(x, mat)
         actions = distr.sample()

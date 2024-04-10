@@ -12,8 +12,9 @@ def savePath(path, dir, filepath):
 
 root = './data/env'
 num_envs = 1
+start_env = 1
 num_paths = 20
-for i in range(num_envs):
+for i in range(start_env, start_env + num_envs):
     env_path = './data/envs/env_' + str(i) + '.txt'
     map = prm.PRM(tree=False, geom='circle')
     map.env.load(env_path)

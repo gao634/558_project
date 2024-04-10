@@ -46,7 +46,7 @@ def main(args):
     hidden_size = 256
     output_size = 2
     gamma = 0.9
-    learning_rate = 0.01
+    learning_rate = 0.005
 
     env = maze.Maze(180, visuals=False)
     model = Policy(input_size, hidden_size, output_size, device)
@@ -60,43 +60,53 @@ def main(args):
         loss_data = []
         avg_score = 0
         avg_steps = 0
+        collision_rate = 0
+        success_rate = 0
+        truncate_rate = 0
         num_episodes = 0
-        for m in range(args.N):
+        for m in range(args.S, args.S + args.N):
             env_path = args.data_path + 'envs/env_' + str(m) + '.txt'
             env.reset()
             env.loadENV(env_path)
             env_tensor = env.getEnvTensor()
-            for n in range(args.NP):
-                print('path ', n)
+            for n in range(args.SP, args.SP + args.NP):
+                #print('path ', n)
                 file_path = args.data_path + 'env' + str(m) + '/path'
                 file_path += str(n) + '.txt'
                 data = getPathData(file_path)
-                score = 0
-                steps = 0
                 num_episodes += len(data) - 1
                 for i in range(1, len(data)):
-                    print('segment ', i)
+                    #print('segment ', i)
                     start = data[i-1]
                     goal = data[i]
                     env.setPos(start[0], start[1])
                     env.setGoal(goal)
                     lidar, reward, terminated, collision = env.step()
                     steps = 0
+                    score = 0
                     rewards = []
                     probs = []
                     while not collision and not terminated and steps < 100:
                         # training loop
+                        steps += 1
                         input = torch.cat([torch.tensor(lidar), env_tensor])
                         input = torch.cat([input, torch.tensor(start)])
                         input = input.to(device)
                         actions, log_prob = model(input)
                         lidar, reward, terminated, collision = env.step((actions[0].item(), actions[1].item()))
+                        if steps == 100:
+                            reward = -10
                         rewards.append(torch.tensor(reward, dtype=torch.float32))
                         probs.append(log_prob)
                         score += reward
-                        steps += 1
+                        if collision:
+                            collision_rate += 1
                         if terminated:
-                            print('success')
+                            success_rate += 1
+                        #if terminated:
+                        #    print('success')
+                    if steps == 100:
+                        truncate_rate += 1
                     avg_score += score
                     avg_steps += steps
                     loss_data.append((rewards, probs))
@@ -109,6 +119,10 @@ def main(args):
 
         avg_score /= num_episodes
         avg_steps /= num_episodes
+        success_rate /= num_episodes
+        truncate_rate /= num_episodes
+        collision_rate /= num_episodes
+        print(success_rate, collision_rate, truncate_rate)
         print(avg_score, avg_steps)
         scores.append(avg_score)
         print(f'Epoch [{epoch + 1}/{args.epochs}], Loss: {loss.item()}')           
@@ -116,7 +130,7 @@ def main(args):
 
 
         curr_epoch = epoch + 1 + args.start_epoch
-        if (curr_epoch) % 100 == 0:
+        if (curr_epoch) % 50 == 0:
             # save model
             if not os.path.exists(args.model_path):
                 os.makedirs(args.model_path)
@@ -137,8 +151,9 @@ parser.add_argument('--model-path', type=str, default='./models/',help='path for
 parser.add_argument('--data-path', type=str, default='./data/')
 parser.add_argument('--N', type=int, default=1, help='number of environments')
 parser.add_argument('--NP', type=int, default=1, help='number of paths per environment')
+parser.add_argument('--S', type=int, default=1, help='start environments')
+parser.add_argument('--SP', type=int, default=0, help='start path per environment')
 
-parser.add_argument('--batch-size', type=int, default=100)
 parser.add_argument('--learning-rate', type=float, default=0.01)
 parser.add_argument('--epochs', type=int, default=500)
 

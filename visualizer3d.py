@@ -87,9 +87,10 @@ def movementDemo(id):
 def main(args):
     env = maze.Maze(180, visuals=True)
     env.reset()
-    env.loadENV('data/envs/env_0.txt')
-    env.setPos(0.5, 0.5, 0)
+    env.loadENV('data/envs/env_1.txt')
+    env.setPos(0.5, 0.5, np.pi/2)
     env.setGoal((2.5, 0.5))
+    env.lidarGraph(env.getInput())
     id = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=2, rgbaColor=[1, 0, 0, 1], visualFramePosition=[0, 0, 3])
     vel = 0
     while True:

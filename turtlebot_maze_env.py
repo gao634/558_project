@@ -17,7 +17,7 @@ def dist(p1, p2):
     return magnitude(diff(p1, p2))
 
 class Maze:
-    def __init__(self, lidar, visuals=False, thresh=0.1):
+    def __init__(self, lidar, visuals=False, thresh=0.05):
         # number of lidar rays
         self.lidar = lidar
         self.obstacle_id = []
@@ -103,11 +103,11 @@ class Maze:
         if distance < self.thresh:
             terminated = True
         if collision:
-            reward = 0
+            reward = -10
         elif terminated:
-            reward = 1
+            reward = 100
         else:
-            reward = 1/distance
+            reward = 1/distance - 0.1
         return data, reward, terminated, collision
     def getInput(self):
         x, y, z, rr, rp, ry = self.getPos()
@@ -117,7 +117,7 @@ class Maze:
         angle = 2* np.pi / num_rays
         data = []
         for i in range(num_rays):
-            dest = [x + max_range * np.cos(i * angle), y + max_range * np.sin (i * angle), 0.9]
+            dest = [x + max_range * np.cos(i * angle + ry), y + max_range * np.sin (i * angle + ry), 0.9]
             ray = p.rayTest(sensor_pos, dest)
             data.append(ray[0][2] * max_range if ray else max_range)
         return data
@@ -139,4 +139,5 @@ class Maze:
         for i in range(n):   
             plt.plot(x[i], y[i], 'o')
         plt.grid(True)
+        plt.savefig('lidar.png')
         plt.show()
