@@ -57,9 +57,15 @@ class Maze:
         x, y, z = pos
         rr, rp, ry = p.getEulerFromQuaternion(orn)
         return (x, y, z, rr, rp, ry)
-    def setPos(self, x, y, dir=None):
+    def getVel(self):
+        vel0 = p.getJointState(self.rid, 0)[1]
+        vel1 = p.getJointState(self.rid, 1)[1]
+        return (vel0, vel1)
+    def setPos(self, x, y, dir=None, rnd=True):
         if dir is None:
             dir = np.random.uniform(0, 2*np.pi)
+        elif rnd:
+            dir = np.random.normal(dir, 0.5)
         orn = p.getQuaternionFromEuler([0, 0, dir])
         pos = [x, y, 0]
         p.resetBasePositionAndOrientation(self.rid, pos, orn)
@@ -91,8 +97,8 @@ class Maze:
         x, y, z, rr, rp, ry = self.getPos()
         distance = dist((x,y), self.goal)
         if self.visuals:
-            p.resetDebugVisualizerCamera(cameraDistance=4, cameraYaw=ry*180/np.pi-90, cameraPitch=-60, cameraTargetPosition=(x, y, z))
-        #    time.sleep(0.05)
+            p.resetDebugVisualizerCamera(cameraDistance=4, cameraYaw=ry*180/np.pi-90, cameraPitch=-75, cameraTargetPosition=(x, y, z))
+            #time.sleep(0.001)
         # robot leaves ground
         if z > 0.1 or z < -0.5:
             collision = True
@@ -105,9 +111,10 @@ class Maze:
         if collision:
             reward = -10
         elif terminated:
-            reward = 100
+            reward = 1000
         else:
-            reward = 1/distance - 0.1
+            reward = 10/distance - 0.1
+        reward += 5*2 ** -abs(self.goalAngle()[0])
         return data, reward, terminated, collision
     def getInput(self):
         x, y, z, rr, rp, ry = self.getPos()
@@ -121,6 +128,21 @@ class Maze:
             ray = p.rayTest(sensor_pos, dest)
             data.append(ray[0][2] * max_range if ray else max_range)
         return data
+    def goalAngle(self):
+        x, y, z, rr, rp, ry = self.getPos()
+        gx, gy = self.goal
+        dx = gx - x
+        dy = gy - y
+        a_world = math.atan2(dy, dx)
+        a_relative = a_world - ry
+    
+        # Normalize the angle to be within the range [-pi, pi]
+        if a_relative > math.pi:
+            a_relative -= 2 * math.pi
+        elif a_relative < -math.pi:
+            a_relative += 2 * math.pi    
+        distance = dist((x,y), self.goal)
+        return (a_relative, distance)
     def reset(self):
         if p.isConnected():
             p.disconnect()
