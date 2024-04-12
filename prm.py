@@ -392,7 +392,7 @@ class PRM():
         ax.set_ylim([0, self.env.width])
         ax.set_aspect('equal', adjustable='box')
         plt.grid(True)
-        plt.pause(0.01)
+        plt.pause(0.001)
 
 # graph data structure
 class Graph():

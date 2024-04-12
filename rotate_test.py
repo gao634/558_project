@@ -70,22 +70,21 @@ def credit_loss(data, gamma, num_episodes, device):
     return loss / num_episodes
 def main(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    input_size = 3 + 6 + 2 + 2
+    input_size = 3
     hidden_size = 256
     output_size = 2
     gamma = 0.9
     learning_rate = 0.001
 
     env = maze.Maze(180, visuals=True, thresh=0.1)
-    model = rlnet.Policy2(input_size, hidden_size, output_size, device)
+    model = rlnet.Policy(input_size, hidden_size, output_size, device)
     if args.start_epoch > 0:
         mp = args.model_path + 'epoch' + str(args.start_epoch) + '.dat'
         model.load_state_dict(torch.load(mp))
-    model.load_state_dict(torch.load('./models/epoch50 copy.dat'))
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     scores = []
-    env_path = 'data/envs/env_1.txt'
+    env_path = 'data/envs/env_2.txt'
     env.reset()
     env.loadENV(env_path)
     env_tensor = env.getEnvTensor()
@@ -98,11 +97,11 @@ def main(args):
         success_rate = 0
         truncate_rate = 0
         avg_steps = 0
-        start = (1.5, 0.5)
-        goal = (1.5, 1.5)
+        start = (1.5, 1.5)
+        goal = (2.5, 1.5)
         loss_data = []
         for iter in range(20):
-            env.setPos(start[0], start[1],  np.pi/2, False)
+            env.setPos(start[0], start[1],  0)
             env.setGoal(goal)
             #print(env.goalAngle())
             lidar, reward, terminated, collision = env.step()
@@ -115,10 +114,7 @@ def main(args):
                 # training loop
                 steps += 1
                 x, y, z, rr, rp, ry = env.getPos()
-                input = torch.tensor((x, y, ry, goal[0], goal[1]))
-                input = torch.cat((input, env.getEnvTensor()))
-                input = torch.cat((input, torch.tensor(env.getVel())))
-                #input = torch.cat((input, torch.tensor(env.goalAngle())))
+                input = torch.tensor((env.goalAngle()[0], env.getVel()[0], env.getVel()[1]))
                 input = input.to(device)
                 actions, log_prob = model(input)
                 lidar, reward, terminated, collision = env.step((actions[0].item(), actions[1].item()))

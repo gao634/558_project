@@ -111,10 +111,10 @@ class Maze:
         if collision:
             reward = -10
         elif terminated:
-            reward = 1000
+            reward = 10
         else:
-            reward = 10/distance - 0.1
-        reward += 5*2 ** -abs(self.goalAngle()[0])
+            reward = 1/distance - 0.1
+        reward = 2 ** -(self.goalAngle()[0] ** 2)
         return data, reward, terminated, collision
     def getInput(self):
         x, y, z, rr, rp, ry = self.getPos()

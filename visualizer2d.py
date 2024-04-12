@@ -33,11 +33,11 @@ def showPath(path):
         #plt.text(path[n].x - 0.5, path[n].y + 0.03, str(n), fontsize=10, color='green')
 
 def showPRM(args):
-    map = prm.PRM(tree=False, geom='circle')
+    map = prm.PRM(tree=False, geom='point')
     map.env.load('data/envs/env_0.txt')
-    map.load('data/env0/prm.txt')
+    #map.load('data/env0/prm.txt')
     time1 = time.time()
-    #map.plan(500, False, True, 2)
+    map.plan(200, True, True, 2)
     #map.save('test_prm.txt')
     time2 = time.time()
     #print(time2 - time1)
