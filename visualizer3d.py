@@ -5,18 +5,16 @@ import prm
 import time
 import turtlebot_maze_env as maze
 
-def velocityDemo(id, vel, env):
+def movementDemo(id, env):
     keys = p.keys = p.getKeyboardEvents()
     for k, v in keys.items():
         if v & p.KEY_WAS_TRIGGERED:
             if k == p.B3G_UP_ARROW:
-                vel += 10
                 #p.setJointMotorControl2(id, 0, p.VELOCITY_CONTROL, targetVelocity=vel, force=100)
                 #p.setJointMotorControl2(id, 1, p.VELOCITY_CONTROL, targetVelocity=vel, force=100)
                 _, _, t, c = env.step((1, 1))
                 print(c)
             elif k == p.B3G_DOWN_ARROW:
-                vel -= 10
                 _, _, t, c = env.step((-1, -1))
             elif k == p.B3G_LEFT_ARROW:
                 _, _, t, c = env.step((-1, 1))
@@ -32,54 +30,6 @@ def velocityDemo(id, vel, env):
     #print(z, rr, rp)
     p.stepSimulation()
 
-    return vel
-
-def movementDemo(id):
-    k = p.getKeyboardEvents()
-    is_button_pressed = False
-    # Check if the up arrow key is pressed
-    if k == p.B3G_UP_ARROW:
-        print('up')
-        # Set the button state to pressed
-        is_button_pressed = True
-    elif k == p.B3G_UP_ARROW + p.KEY_WAS_RELEASED:
-        # Set the button state to released
-        is_button_pressed = False
-
-    # Apply torque if the button is pressed
-    if is_button_pressed:
-        print('Moving forward')
-        # Apply equal forces to both wheels to move forward
-        force = 100  # Adjust the force as needed
-        p.setJointMotorControl2(id, 0, p.TORQUE_CONTROL, force=force)
-        p.setJointMotorControl2(id, 1, p.TORQUE_CONTROL, force=force)
-    else:
-        # Stop applying torque if the button is released
-        p.setJointMotorControl2(id, 0, p.TORQUE_CONTROL, force=0)
-        p.setJointMotorControl2(id, 1, p.TORQUE_CONTROL, force=0)
-    for k, v in keys.items():
-        if v & p.KEY_WAS_TRIGGERED:
-            if k == p.B3G_UP_ARROW:
-                p.setJointMotorControl2(id, 0, p.TORQUE_CONTROL, force=force)
-                p.setJointMotorControl2(id, 1, p.TORQUE_CONTROL, force=force)
-            elif k == p.B3G_DOWN_ARROW:
-                print('down')
-                p.setJointMotorControl2(id, 0, p.VELOCITY_CONTROL, targetVelocity=0, force=-1)
-                p.setJointMotorControl2(id, 1, p.VELOCITY_CONTROL, targetVelocity=0, force=1)
-            elif k == p.B3G_LEFT_ARROW:
-                print('left')
-                # left joint is 0, right joint is 1
-                p.setJointMotorControl2(id, 0, p.VELOCITY_CONTROL, targetVelocity=0, force=-1)
-                #p.setJointMotorControl2(id, 1, p.VELOCITY_CONTROL, targetVelocity=0, force=1)
-            elif k == p.B3G_RIGHT_ARROW:
-                print('right')
-                p.setJointMotorControl2(id, 0, p.VELOCITY_CONTROL, targetVelocity=0, force=1)
-                #p.setJointMotorControl2(id, 1, p.VELOCITY_CONTROL, targetVelocity=0, force=-1)
-    pos, orn = p.getBasePositionAndOrientation(id)
-    x, y, z = pos
-    rr, rp, ry = p.getEulerFromQuaternion(orn)
-    p.resetDebugVisualizerCamera(cameraDistance=4, cameraYaw=ry-90, cameraPitch=-60, cameraTargetPosition=pos)
-    p.stepSimulation()
 
 def main(args):
     env = maze.Maze(180, visuals=True)
@@ -87,12 +37,11 @@ def main(args):
     env.loadENV('data/envs/env_0.txt')
     env.setPos(0.5, 0.5, 0)
     env.setGoal((2.5, 0.5))
-    env.lidarGraph(env.getInput())
-    id = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=2, rgbaColor=[1, 0, 0, 1], visualFramePosition=[0, 0, 3])
-    vel = 0
+    #env.lidarGraph(env.getInput())
+    #id = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=2, rgbaColor=[1, 0, 0, 1], visualFramePosition=[0, 0, 3])
     while True:
         #movementDemo(id)
-        vel = velocityDemo(env.rid, vel, env)
+        movementDemo(env.rid, env)
         # Sleep to avoid consuming too much CPU
         time.sleep(0.01)
 
