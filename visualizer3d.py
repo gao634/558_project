@@ -28,6 +28,7 @@ def movementDemo(id, env):
     applied_force = joint_state[3]
     #print("Applied force:", applied_force)
     #print(z, rr, rp)
+    print(2 ** -(env.goalAngle()[0] ** 2))
     p.stepSimulation()
 
 

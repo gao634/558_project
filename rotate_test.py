@@ -100,7 +100,7 @@ def main(args):
         start = (1.5, 1.5)
         goal = (2.5, 1.5)
         loss_data = []
-        for iter in range(20):
+        for iter in range(num_episodes):
             env.setPos(start[0], start[1],  0)
             env.setGoal(goal)
             #print(env.goalAngle())
@@ -109,7 +109,7 @@ def main(args):
             score = 0
             rewards = []
             probs = []
-            iters = 200
+            iters = 500
             while not terminated and steps < iters:
                 # training loop
                 steps += 1
@@ -117,7 +117,7 @@ def main(args):
                 input = torch.tensor((env.goalAngle()[0], env.getVel()[0], env.getVel()[1]))
                 input = input.to(device)
                 actions, log_prob = model(input)
-                lidar, reward, terminated, collision = env.step((actions[0].item(), actions[1].item()))
+                lidar, reward, terminated, collision = env.step((actions[0].item(), actions[1].item()), vel=True)
                 #if steps == iters:
                     #reward = -10
                 rewards.append(torch.tensor(reward, dtype=torch.float32))
@@ -135,7 +135,7 @@ def main(args):
             avg_steps += steps
             loss_data.append((rewards, probs))
             #print(len(reward_probs))
-        loss = credit_loss(loss_data, gamma, 100, device)
+        loss = lossF(loss_data, gamma, 100, device)
         #gradient calculation
         optimizer.zero_grad()
         loss.backward()
@@ -154,11 +154,11 @@ def main(args):
 
 
         curr_epoch = epoch + 1 + args.start_epoch
-        if epoch == 10:
+        if epoch == 20:
             env.visuals = False
             env.reset()
             env.loadENV(env_path)
-        if (curr_epoch) % 50 == 0:
+        if (curr_epoch) % 30 == 0:
             # save model
             if not os.path.exists(args.model_path):
                 os.makedirs(args.model_path)

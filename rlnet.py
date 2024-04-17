@@ -74,7 +74,24 @@ class Policy3(nn.Module):
         x = self.l4(x)
         x = self.sig(x)
         return x
-    
+
+class PolDiscrete(nn.Module):
+    def __init__(self, input_size, hidden_size=32, output_size=5):
+        super(PolDiscrete, self).__init__()
+        self.l1 = nn.Linear(input_size, hidden_size)
+        self.relu = nn.PReLU()
+        self.l2 = nn.Linear(hidden_size, output_size)
+        self.soft = nn.Softmax()
+    def forward(self, x):
+        x = self.l1(x)
+        x = self.relu(x)
+        x = self.l2(x)
+        x = self.soft(x)
+        distr = torch.distributions.Categorical(logits=x)
+        action = distr.sample()
+        # we have 5 actions: 4 directions and no input
+        return action, distr.log_prob(action)
+
 class MLP(nn.Module):
     def __init__(self, input_size, output_size):
         #set to 0.5 for default dropout rate

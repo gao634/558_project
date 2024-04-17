@@ -1,6 +1,6 @@
 # Project Name
 
-PRM-Guided Local RL Controller
+PRM-Guided Local RL Controller Milestone 2
 
 ## Table of Contents
 
@@ -17,7 +17,10 @@ PRM-Guided Local RL Controller
 
 ## Usage
 
-Currently, args in visualizer.py are not used. Directly run visualizer.py to run PRM. Change inputs directly in code as needed. Path finding for graph not implemented yet.
+Most of the trainers do not work. Trainer_simple uses only a single env and no path. rotate_test tries to get robot to point to goal direction.
+lidar_test tries to predict position based on lidar data.
+Run visualizer2d for demo1 and visualizer3d for demo2. Trainer_test for demo3. They should be configured to show visuals similar to the demo
+videos.
 
 ## Author
 

@@ -5,6 +5,7 @@ import matplotlib.patches as mpatches
 import sys
 import heapq
 import os
+import random
 
 
 # taken from assignment 1 part 2
@@ -197,6 +198,17 @@ class PRM():
             path.insert(0, start)
             #print(path_ind)
         return path, cost
+    # lazy vertex contraction to reduce nodes
+    def lvc(self, path):
+        max_iters = 1000
+        i = 0
+        while len(path) > 1 and i < max_iters:
+            i += 1
+            inds = random.sample(range(0, len(path)), 2)
+            if self.steerTo(path[inds[0]], path[inds[1]]):
+                for j in range(inds[0], inds[1]):
+                    path.pop(j)
+        return path
     # returns true if no collision
     def steerTo(self, start, goal):
         dir = diff(goal.coord(), start.coord())

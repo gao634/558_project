@@ -26,6 +26,7 @@ class Maze:
         self.visuals = visuals
         self.goalmarker = -1
         self.thresh = thresh
+        self.steps = 0
     def getEnvTensor(self):
         env = torch.tensor(self.env.obs)
         return env.view(-1)
@@ -71,23 +72,48 @@ class Maze:
         p.resetBasePositionAndOrientation(self.rid, pos, orn)
         p.setJointMotorControl2(self.rid, 0, controlMode=p.VELOCITY_CONTROL, targetVelocity=0, force=0)
         p.setJointMotorControl2(self.rid, 1, controlMode=p.VELOCITY_CONTROL, targetVelocity=0, force=0)
+        self.steps = 0
     def setGoal(self, goal):
+        if self.goalmarker > -1:
+            p.removeBody(self.goalmarker)
         self.goal = goal
         if self.visuals:
-            self.goalmarker = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.1, rgbaColor=[1, 0, 0, 0.5], 
-                                       visualFramePosition=[goal[0], goal[1], 0.5])
+            self.goalmarker = p.loadURDF('assets/marker.urdf', [goal[0], goal[1], 0.3])
     def collision(self):
         for obs in self.obstacle_id:
             contact = p.getContactPoints(bodyA=self.rid, bodyB=obs)
             if contact:
                 return True
         return False
-    def step(self, action=None):
+    def step(self, action=None, vel=False, discr=False):
         if action is None:
             return self.getInput(), 0, False, False
-        t0, t1 = action
-        p.setJointMotorControl2(self.rid, 0, p.TORQUE_CONTROL, force=t0)
-        p.setJointMotorControl2(self.rid, 1, p.TORQUE_CONTROL, force=t1)
+        if not discr:
+            t0, t1 = action
+            if not vel:
+                p.setJointMotorControl2(self.rid, 0, p.TORQUE_CONTROL, force=t0)
+                p.setJointMotorControl2(self.rid, 1, p.TORQUE_CONTROL, force=t1)
+            else:
+                t0 *= 20
+                t1 *= 20
+                p.setJointMotorControl2(self.rid, 0, p.VELOCITY_CONTROL, targetVelocity=t0, force=100)
+                p.setJointMotorControl2(self.rid, 1, p.VELOCITY_CONTROL, targetVelocity=t1, force=100)
+        else:
+            if action == 0:
+                p.setJointMotorControl2(self.rid, 0, p.TORQUE_CONTROL, force=1)
+                p.setJointMotorControl2(self.rid, 1, p.TORQUE_CONTROL, force=1)
+            elif action == 1:
+                p.setJointMotorControl2(self.rid, 0, p.TORQUE_CONTROL, force=-1)
+                p.setJointMotorControl2(self.rid, 1, p.TORQUE_CONTROL, force=-1)
+            elif action == 2:
+                p.setJointMotorControl2(self.rid, 0, p.TORQUE_CONTROL, force=-1)
+                p.setJointMotorControl2(self.rid, 1, p.TORQUE_CONTROL, force=1)
+            elif action == 3:
+                p.setJointMotorControl2(self.rid, 0, p.TORQUE_CONTROL, force=1)
+                p.setJointMotorControl2(self.rid, 1, p.TORQUE_CONTROL, force=-1)
+            elif action == 4:
+                p.setJointMotorControl2(self.rid, 0, p.TORQUE_CONTROL, force=0)
+                p.setJointMotorControl2(self.rid, 1, p.TORQUE_CONTROL, force=0)
         p.stepSimulation()
         data = self.getInput()
         # hit wall or flipped
@@ -114,6 +140,7 @@ class Maze:
             reward = 10
         else:
             reward = 1/distance - 0.1
+        # reward for facing the goal
         reward = 2 ** -(self.goalAngle()[0] ** 2)
         return data, reward, terminated, collision
     def getInput(self):
@@ -150,9 +177,17 @@ class Maze:
             p.connect(p.GUI)
         else:
             p.connect(p.DIRECT)
+        self.goalmarker = -1
         id = p.loadURDF('assets/ground.urdf', [0, 0, -0.1])
         p.setGravity(0, 0, -9.81) 
         self.rid = self.loadAgent(-5, -5)
+        self.steps = 0
+    def lidarParse(self, data):
+        n = len(data)
+        angle = 2* np.pi / n
+        x = [d * np.cos(i * angle) for i, d in enumerate(data)]
+        y = [d * np.sin(i * angle) for i, d in enumerate(data)]
+        return x, y
     def lidarGraph(self, data):
         n = len(data)
         angle = 2* np.pi / n

@@ -81,7 +81,10 @@ def main(args):
             score = 0
             rewards = []
             probs = []
-            while not terminated and steps < 100:
+            iters = 300
+            avg1 = 0
+            avg2 = 0
+            while not terminated and steps < iters:
                 # training loop
                 steps += 1
                 input = torch.cat([torch.tensor(lidar), env_tensor])
@@ -89,8 +92,10 @@ def main(args):
                 input = torch.cat([input, torch.tensor(env.getVel())])
                 input = input.to(device)
                 actions, log_prob = model(input)
-                lidar, reward, terminated, collision = env.step((-actions[0].item(), actions[1].item()))
-                if steps == 100:
+                lidar, reward, terminated, collision = env.step((actions[0].item(), actions[1].item()), vel=True)
+                avg1 += actions[0].item()
+                avg2 += actions[1].item()
+                if steps == iters:
                     reward = -10
                 rewards.append(torch.tensor(reward, dtype=torch.float32))
                 probs.append(log_prob)
@@ -101,7 +106,8 @@ def main(args):
                     success_rate += 1
                 #if terminated:
                 #    print('success')
-            if steps == 100:
+            print(avg1/iters, avg2/iters)
+            if steps == iters:
                 truncate_rate += 1
             avg_score += score
             avg_steps += steps
@@ -126,20 +132,23 @@ def main(args):
 
 
         curr_epoch = epoch + 1 + args.start_epoch
-        if (curr_epoch) % 50 == 0:
+        if epoch == 20:
+            env.visuals = False
+            env.reset()
+            env.loadENV(env_path)
+        if (curr_epoch) % 30 == 0:
             # save model
             if not os.path.exists(args.model_path):
                 os.makedirs(args.model_path)
             save_path = args.model_path + 'epoch' + str(curr_epoch) + '.dat'
             torch.save(model.state_dict(), save_path)
-    if args.plot:
-        plt.plot(range(1, len(scores) + 1), scores)
-        plt.xlabel('Iter')
-        plt.ylabel('Avg Score')
-        plt.title(f'Scores')
-        plt.grid(True)
-        plt.savefig('scores.png')
-        plt.show()
+            if args.plot:
+                plt.plot(range(1, len(scores) + 1), scores)
+                plt.xlabel('Iter')
+                plt.ylabel('Avg Score')
+                plt.title(f'Scores')
+                plt.grid(True)
+                plt.savefig('scores.png')
 
 parser = argparse.ArgumentParser()
 
