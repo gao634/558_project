@@ -114,17 +114,29 @@ class Maze:
             elif action == 4:
                 p.setJointMotorControl2(self.rid, 0, p.TORQUE_CONTROL, force=0)
                 p.setJointMotorControl2(self.rid, 1, p.TORQUE_CONTROL, force=0)
-        p.stepSimulation()
-        data = self.getInput()
-        # hit wall or flipped
-        collision = False
-        # reached goal
-        terminated = False
         x, y, z, rr, rp, ry = self.getPos()
-        distance = dist((x,y), self.goal)
         if self.visuals:
             p.resetDebugVisualizerCamera(cameraDistance=4, cameraYaw=ry*180/np.pi-90, cameraPitch=-75, cameraTargetPosition=(x, y, z))
             #time.sleep(0.001)
+        p.stepSimulation()
+        collision, terminated = self.termination()
+        return terminated, collision
+    def rewardF(self, distG=True, angle=True, safety=True):
+        reward = 0
+        if distG:
+            x, y, z, rr, rp, ry = self.getPos()
+            distance = dist((x,y), self.goal)
+            reward += 1/distance
+        if angle:
+            reward += self.angleReward()
+        if safety:
+            reward += self.safetyReward()
+        return reward
+    def termination(self):
+        collision = False
+        terminated = False
+        x, y, z, rr, rp, ry = self.getPos()
+        distance = dist((x,y), self.goal)
         # robot leaves ground
         if z > 0.1 or z < -0.5:
             collision = True
@@ -134,15 +146,16 @@ class Maze:
             collision = True
         if distance < self.thresh:
             terminated = True
-        if collision:
-            reward = -10
-        elif terminated:
-            reward = 10
-        else:
-            reward = 1/distance - 0.1
-        # reward for facing the goal
-        reward = 2 ** -(self.goalAngle()[0] ** 2)
-        return data, reward, terminated, collision
+        return collision, terminated
+    # reward for facing the goal
+    def angleReward(self):
+        weight = 1
+        return weight * 2 ** -(self.goalAngle()[0] ** 2)
+    # reward for staying away from walls
+    def safetyReward(self):
+        data = self.getInput()
+        weight = 1
+        return -weight * 1 / min(data)
     def getInput(self):
         x, y, z, rr, rp, ry = self.getPos()
         sensor_pos = (x, y, 0.9)

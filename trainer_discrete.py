@@ -65,9 +65,9 @@ def credit_loss(data, gamma, num_episodes):
     return loss / num_episodes
 def main(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    input_size = 3
+    input_size = 4
     gamma = 0.99
-    learning_rate = 0.01
+    learning_rate = 0.005
 
     env = maze.Maze(180, visuals=True, thresh=0.1)
     model = rlnet.PolDiscrete(input_size)
@@ -83,7 +83,7 @@ def main(args):
     env_tensor = env.getEnvTensor()
     #file_path = 'data/env1/path0.txt'
     #data = getPathData(file_path)
-    num_episodes = 20
+    num_episodes = 50
     for epoch in range(args.epochs):
         avg_score = 0
         avg_angle = 0
@@ -108,10 +108,12 @@ def main(args):
                 # training loop
                 steps += 1
                 x, y, z, rr, rp, ry = env.getPos()
-                input = torch.tensor((env.goalAngle()[0], env.getVel()[0], env.getVel()[1]))
+                angle, distance = env.goalAngle()
+                input = torch.tensor((angle, distance, env.getVel()[0], env.getVel()[1]))
                 input = input.to(device)
                 action, log_prob = model(input)
-                lidar, reward, terminated, collision = env.step(action, discr=True)
+                terminated, collision = env.step(action, discr=True)
+                reward = env.rewardF()
                 #if steps == iters:
                     #reward = -10
                 rewards.append(torch.tensor(reward, dtype=torch.float32))
@@ -130,7 +132,7 @@ def main(args):
             avg_angle += 2 ** -(env.goalAngle()[0] ** 2)
             loss_data.append((rewards, probs))
             #print(len(reward_probs))
-        loss = credit_loss(loss_data, gamma, num_episodes)
+        loss = lossF(loss_data, gamma, num_episodes, device)
         #gradient calculation
         optimizer.zero_grad()
         loss.backward()
