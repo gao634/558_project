@@ -79,6 +79,7 @@ class Maze:
         p.resetBasePositionAndOrientation(self.rid, pos, orn)
         p.setJointMotorControl2(self.rid, 0, controlMode=p.VELOCITY_CONTROL, targetVelocity=0, force=0)
         p.setJointMotorControl2(self.rid, 1, controlMode=p.VELOCITY_CONTROL, targetVelocity=0, force=0)
+        p.resetDebugVisualizerCamera(cameraDistance=7, cameraYaw=90, cameraPitch=-75, cameraTargetPosition=(x, y, 0))
         self.steps = 0
     def setGoal(self, goal):
         if self.goalmarker > -1:
@@ -95,11 +96,10 @@ class Maze:
     def step(self, action=None, vel=False, discr=False):
         self.prevObs = self.getObs()
         if action is None:
-            input = self.getInput()
-            input = []
+            input = self.getFivePoint()
             angle, distance = self.goalAngle()
-            input.append(angle)
-            input.append(distance)
+            v1, v2 = self.getVel()
+            input = np.concatenate([input, [angle, distance, v1, v2]])
             reward = self.rewardF()
             return input, reward, False
         if not discr:
@@ -119,20 +119,20 @@ class Maze:
             if action == 0:
                 p.setJointMotorControl2(self.rid, 0, p.TORQUE_CONTROL, force=1)
                 p.setJointMotorControl2(self.rid, 1, p.TORQUE_CONTROL, force=1)
-            elif action == 1:
+                for i in range(2):
+                    p.stepSimulation()
+            elif action == 3:
                 p.setJointMotorControl2(self.rid, 0, p.TORQUE_CONTROL, force=-1)
                 p.setJointMotorControl2(self.rid, 1, p.TORQUE_CONTROL, force=-1)
             elif action == 2:
                 p.setJointMotorControl2(self.rid, 0, p.TORQUE_CONTROL, force=-1)
                 p.setJointMotorControl2(self.rid, 1, p.TORQUE_CONTROL, force=1)
-            elif action == 3:
+            elif action == 1:
                 p.setJointMotorControl2(self.rid, 0, p.TORQUE_CONTROL, force=1)
                 p.setJointMotorControl2(self.rid, 1, p.TORQUE_CONTROL, force=-1)
             elif action == 4:
                 p.setJointMotorControl2(self.rid, 0, p.TORQUE_CONTROL, force=0)
                 p.setJointMotorControl2(self.rid, 1, p.TORQUE_CONTROL, force=0)
-            for i in range(4):
-                p.stepSimulation()
         else:
             # discrete action velocity control
             if action == 0:
@@ -155,12 +155,12 @@ class Maze:
         p.stepSimulation()
         collision, terminated = self.termination()
         done = terminated or collision
-        input = self.getInput()
-        input = []
+        input = self.getFivePoint()
         angle, distance = self.goalAngle()
-        input.append(angle)
-        input.append(distance)
+        v1, v2 = self.getVel()
+        input = np.concatenate([input, [angle, distance, v1, v2]])
         reward = self.rewardF(False, True, False)
+        self.steps += 1
         return input, reward, done
     def rewardF(self, distG=True, angle=True, safety=False):
         reward = 0
@@ -170,9 +170,13 @@ class Maze:
             reward += distR
         if angle:
             angR = abs(self.prevObs[3][0])-abs(obs[3][0])
-            reward += angR
+            reward += 1 * angR
         if safety:
             reward += 0
+        arrival_reward = 1000 if obs[3][1] < self.thresh else 0 
+        time_penalty = 0.2
+        reward += arrival_reward
+        reward -= time_penalty
         return reward
     def termination(self):
         collision = False
@@ -224,7 +228,7 @@ class Maze:
         dest = [x + max_range * np.cos(ry + np.pi/2), y + max_range * np.sin (ry + np.pi/2), 0.9]
         ray = p.rayTest(sensor_pos, dest)
         data.append(ray[0][2] * max_range if ray else max_range)
-        print(data)
+        #print(data)
         return data
     def goalAngle(self):
         x, y, z, rr, rp, ry = self.getPos()

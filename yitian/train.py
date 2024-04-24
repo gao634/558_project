@@ -21,7 +21,7 @@ if __name__ == "__main__":
             agent.remember(state, action, reward, next_state, done)
             
             agent.train_step()
-            
+            print(state)
             state = next_state
             total_reward += reward
             

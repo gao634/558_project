@@ -202,12 +202,12 @@ class PRM():
     def lvc(self, path):
         max_iters = 1000
         i = 0
-        while len(path) > 1 and i < max_iters:
+        while len(path) > 2 and i < max_iters:
             i += 1
             inds = random.sample(range(0, len(path)), 2)
             if self.steerTo(path[inds[0]], path[inds[1]]):
-                for j in range(inds[0], inds[1]):
-                    path.pop(j)
+                for j in range(inds[0]+1, inds[1]):
+                    path.pop(inds[0] + 1)
         return path
     # returns true if no collision
     def steerTo(self, start, goal):

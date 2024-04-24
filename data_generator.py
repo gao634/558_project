@@ -12,7 +12,7 @@ def savePath(path, dir, filepath):
 
 root = './data/env'
 num_envs = 1
-start_env = 1
+start_env = 0
 num_paths = 20
 for i in range(start_env, start_env + num_envs):
     env_path = './data/envs/env_' + str(i) + '.txt'
@@ -44,6 +44,6 @@ for i in range(start_env, start_env + num_envs):
         path, cost = map.getPath(start, goal)
         if path is not None:
             filepath = str(root) + str(i) + '/path' + str(count) + '.txt'
-            savePath(path, dir, filepath)
+            savePath(map.lvc(path), dir, filepath)
             count += 1
-
+            print(count)

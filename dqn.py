@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import random
 from collections import deque
+import numpy as np
 
 class DQN(nn.Module):
     def __init__(self, input_dim, output_dim):
@@ -17,10 +18,13 @@ class DQN(nn.Module):
         return self.net(x)
 
 class DQNAgent:
-    def __init__(self, input_dim, action_dim, gamma=0.99, batch_size=64, buffer_size=50000):
+    def __init__(self, input_dim, action_dim, gamma=0.99, batch_size=128, eps = 1, decay = 0.9999, buffer_size=10000):
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model = DQN(input_dim, action_dim).float()
         self.target_model = DQN(input_dim, action_dim).float()
         self.target_model.load_state_dict(self.model.state_dict())
+        self.brain_eval.to(self.device)
+        self.brain_target.to(self.device)
         self.target_model.eval()
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
         self.criterion = nn.MSELoss()
@@ -28,8 +32,8 @@ class DQNAgent:
         self.gamma = gamma
         self.batch_size = batch_size
         self.action_dim = action_dim
-        self.exploration_rate = 1.0
-        self.exploration_decay = 0.9999
+        self.exploration_rate = eps
+        self.exploration_decay = decay
         self.exploration_min = 0.01
 
     def act(self, state):
@@ -37,6 +41,7 @@ class DQNAgent:
         if random.random() < self.exploration_rate:
             return random.randrange(self.action_dim)
         state = torch.tensor(state, dtype=torch.float32).unsqueeze(0)
+        state = state.to(self.device)
         with torch.no_grad():
             action_values = self.model(state)
         return torch.argmax(action_values).item()
@@ -49,12 +54,17 @@ class DQNAgent:
             return
         batch = random.sample(self.replay_buffer, self.batch_size)
         states, actions, rewards, next_states, dones = zip(*batch)
-
+        #states = np.array(states)
         states = torch.tensor(states, dtype=torch.float32)
         next_states = torch.tensor(next_states, dtype=torch.float32)
         actions = torch.tensor(actions, dtype=torch.int64)
         rewards = torch.tensor(rewards, dtype=torch.float32)
         dones = torch.tensor(dones, dtype=torch.bool)
+        states = states.to(self.device)
+        next_states = next_states.to(self.device)
+        actions = actions.to(self.device)
+        rewards = rewards.to(self.device)
+        dones = dones.to(self.device)
 
         # Get current Q value
         current_q_values = self.model(states).gather(1, actions.unsqueeze(-1)).squeeze(-1)
@@ -76,12 +86,11 @@ class DQNAgent:
         # print(f'Loss {loss.item()}, Exploration {self.exploration_rate}')
         
         # Periodically update target model
-        self.update_target_model()
 
     def update_target_model(self):
         self.target_model.load_state_dict(self.model.state_dict())
 
     def save(self, steps):
-        path = f"dqn_model_{steps}.pth"
+        path = f"./test_models/dqn_model_{steps}.pth"
         print('Save model to ', path)
         torch.save(self.model.state_dict(), path)

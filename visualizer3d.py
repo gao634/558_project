@@ -36,7 +36,7 @@ def movementDemo(id, env):
 def main(args):
     env = maze.Maze(180, visuals=True)
     env.reset()
-    env.loadENV('data/envs/env_0.txt')
+    env.loadENV('data/envs/env_2.txt')
     env.setPos(0.5, 0.5, 0, False)
     env.setGoal((2.5, 0.5))
     env.lidarGraph(env.getFivePoint())
