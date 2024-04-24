@@ -91,6 +91,18 @@ class PolDiscrete(nn.Module):
         action = distr.sample()
         # we have 5 actions: 4 directions and no input
         return action, distr.log_prob(action)
+    
+class DQN(nn.Module):
+    def __init__(self, input_size, hidden_size=64, output_size=5):
+        super(DQN, self).__init__()
+        self.l1 = nn.Linear(input_size, hidden_size)
+        self.relu = nn.PReLU()
+        self.l2 = nn.Linear(hidden_size, output_size)
+    def forward(self, x):
+        x = self.l1(x)
+        x = self.relu(x)
+        x = self.l2(x)
+        return x
 
 class MLP(nn.Module):
     def __init__(self, input_size, output_size):

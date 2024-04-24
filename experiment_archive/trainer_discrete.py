@@ -98,7 +98,7 @@ def main(args):
             env.setPos(start[0], start[1])
             env.setGoal(goal)
             #print(env.goalAngle())
-            lidar, reward, terminated, collision = env.step()
+            terminated, collision = env.step()
             steps = 0
             score = 0
             rewards = []

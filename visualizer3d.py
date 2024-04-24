@@ -7,19 +7,19 @@ import turtlebot_maze_env as maze
 
 def movementDemo(id, env):
     keys = p.keys = p.getKeyboardEvents()
+    vel = True
     for k, v in keys.items():
         if v & p.KEY_WAS_TRIGGERED:
             if k == p.B3G_UP_ARROW:
                 #p.setJointMotorControl2(id, 0, p.VELOCITY_CONTROL, targetVelocity=vel, force=100)
                 #p.setJointMotorControl2(id, 1, p.VELOCITY_CONTROL, targetVelocity=vel, force=100)
-                _, _, t, c = env.step((1, 1))
-                print(c)
+                _, t, c = env.step(0, vel=vel, discr=True)
             elif k == p.B3G_DOWN_ARROW:
-                _, _, t, c = env.step((-1, -1))
+                _, t, c = env.step(1, vel=vel, discr=True)
             elif k == p.B3G_LEFT_ARROW:
-                _, _, t, c = env.step((-1, 1))
+                _, t, c = env.step(2, vel=vel, discr=True)
             elif k == p.B3G_RIGHT_ARROW:
-                _, _, t, c = env.step((1, -1))
+                _, t, c = env.step(3, vel=vel, discr=True)
     pos, orn = p.getBasePositionAndOrientation(id)
     x, y, z = pos
     rr, rp, ry = p.getEulerFromQuaternion(orn)
@@ -28,7 +28,8 @@ def movementDemo(id, env):
     applied_force = joint_state[3]
     #print("Applied force:", applied_force)
     #print(z, rr, rp)
-    print(2 ** -(env.goalAngle()[0] ** 2))
+    print(env.goalAngle()[0])
+    print(p.getJointState(id, 0), p.getJointState(id, 1))
     p.stepSimulation()
 
 
@@ -36,9 +37,9 @@ def main(args):
     env = maze.Maze(180, visuals=True)
     env.reset()
     env.loadENV('data/envs/env_0.txt')
-    env.setPos(0.5, 0.5, 0)
+    env.setPos(0.5, 0.5, 0, False)
     env.setGoal((2.5, 0.5))
-    #env.lidarGraph(env.getInput())
+    env.lidarGraph(env.getFivePoint())
     #id = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=2, rgbaColor=[1, 0, 0, 1], visualFramePosition=[0, 0, 3])
     while True:
         #movementDemo(id)
