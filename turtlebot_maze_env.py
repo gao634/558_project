@@ -73,7 +73,7 @@ class Maze:
         if dir is None:
             dir = np.random.uniform(0, 2*np.pi)
         elif rnd:
-            dir = np.random.normal(dir, 0.5)
+            dir = np.random.normal(dir, 1)
         orn = p.getQuaternionFromEuler([0, 0, dir])
         pos = [x, y, 0]
         p.resetBasePositionAndOrientation(self.rid, pos, orn)
@@ -100,7 +100,7 @@ class Maze:
             angle, distance = self.goalAngle()
             v1, v2 = self.getVel()
             input = np.concatenate([input, [angle, distance, v1, v2]])
-            reward = self.rewardF()
+            reward = self.rewardF(False)
             return input, reward, False
         if not discr:
             t0, t1 = action
@@ -122,8 +122,15 @@ class Maze:
                 for i in range(2):
                     p.stepSimulation()
             elif action == 3:
-                p.setJointMotorControl2(self.rid, 0, p.TORQUE_CONTROL, force=-1)
-                p.setJointMotorControl2(self.rid, 1, p.TORQUE_CONTROL, force=-1)
+                # implement braking
+                if self.prevObs[1][0] > 0:
+                    p.setJointMotorControl2(self.rid, 0, p.TORQUE_CONTROL, force=-1)
+                else:
+                    p.setJointMotorControl2(self.rid, 0, p.TORQUE_CONTROL, force=1)
+                if self.prevObs[1][1] > 0:
+                    p.setJointMotorControl2(self.rid, 1, p.TORQUE_CONTROL, force=-1)
+                else:
+                    p.setJointMotorControl2(self.rid, 1, p.TORQUE_CONTROL, force=1)
             elif action == 2:
                 p.setJointMotorControl2(self.rid, 0, p.TORQUE_CONTROL, force=-1)
                 p.setJointMotorControl2(self.rid, 1, p.TORQUE_CONTROL, force=1)
@@ -159,24 +166,29 @@ class Maze:
         angle, distance = self.goalAngle()
         v1, v2 = self.getVel()
         input = np.concatenate([input, [angle, distance, v1, v2]])
-        reward = self.rewardF(False, True, False)
+        reward = self.rewardF(collision, True, True, False)
         self.steps += 1
         return input, reward, done
-    def rewardF(self, distG=True, angle=True, safety=False):
+    def rewardF(self, collision, distG=True, angle=True, safety=True):
         reward = 0
         obs = self.getObs()
         if distG:
             distR = self.prevObs[3][1] - obs[3][1]
             reward += distR
+           # reward -= obs[3][1]
         if angle:
             angR = abs(self.prevObs[3][0])-abs(obs[3][0])
-            reward += 1 * angR
+            reward += 10 * angR
+           # reward -= abs(obs[3][0])
         if safety:
-            reward += 0
+            if min(obs[0]) < 0.05:
+                reward -= 1
         arrival_reward = 1000 if obs[3][1] < self.thresh else 0 
-        time_penalty = 0.2
+        time_penalty = .2
         reward += arrival_reward
         reward -= time_penalty
+        #if collision:
+        #    reward -= 200
         return reward
     def termination(self):
         collision = False
@@ -245,6 +257,12 @@ class Maze:
             a_relative += 2 * math.pi    
         distance = dist((x,y), self.goal)
         return (a_relative, distance)
+    def goalWorldAngle(self, x, y):
+        gx, gy = self.goal
+        dx = gx - x
+        dy = gy - y
+        a_world = math.atan2(dy, dx)
+        return a_world
     def reset(self):
         if p.isConnected():
             p.disconnect()

@@ -11,11 +11,11 @@ if __name__ == "__main__":
     env_path = 'data/envs/env_2.txt'
     env.reset()
     env.loadENV(env_path)
-    input_dim = 7  # Example: 5 rays + 2 goal info (distance & angle)
-    action_dim = 4  # forward, left, right, back
-    agent = DQNAgent(input_dim=input_dim, action_dim=action_dim, eps=0)
-    agent.model.load_state_dict(torch.load('./test_models/dqn_model_500.pth'))
-    agent.target_model.load_state_dict(agent.model.state_dict())
+    input_dim = 9  # Example: 5 rays + 2 goal info (distance & angle) + 2 wheel vel
+    action_dim = 3  # forward, left, right
+    agent = DQNAgent(input_dim=input_dim, action_dim=action_dim, eps=0, min_eps = 0)
+    agent.model.load_state_dict(torch.load('./models/archive/m5.pth'))
+    #agent.model.load_state_dict(torch.load('./test_models/dqn_model_500.pth'))
     episodes = 20
     scores = []
     start = (1.5, 1.5)
@@ -25,7 +25,7 @@ if __name__ == "__main__":
         total_reward = 0
         done = False
         score = 0
-        env.setPos(start[0], start[1], -np.pi, False)
+        env.setPos(start[0], start[1])
         env.setGoal(goal)
         while not done:
             action = agent.act(state)
@@ -35,7 +35,7 @@ if __name__ == "__main__":
             total_reward += reward
             
             score += env.goalAngle()[1]
-            time.sleep(0.001)
+            #time.sleep(0.001)
             # print(reward)
             #print(env.steps)
             if env.steps > 500: 

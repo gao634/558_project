@@ -41,7 +41,9 @@ class ENV():
             self.obs = np.loadtxt(path, np.int32)
         else:
             self.obs = np.fromfile(path, np.int32)
+        
         self.length, self.width = self.obs.shape
+        #print(self.obs.shape)
     # takes a plt as input so it can be called in visualizer.py
     def visualize(self):
         # for now, our maze runs on grid coordinates and each obs is a 1x1 square
@@ -59,7 +61,7 @@ class PRM():
         self.graph = Graph()
         # for collisions, 'circle' for turtlebot
         self.geom = geom
-        self.turtlebot_radius = 0.18
+        self.turtlebot_radius = 0.2
         if geom == 'point':
             self.space_saving_dist = 0.5
         elif geom == 'circle':
@@ -394,7 +396,7 @@ class PRM():
             if self.geom == 'circle':
                 circle = mpatches.Circle((self.getNode(i).x, self.getNode(i).y), self.turtlebot_radius, color="green")
                 plt.gca().add_patch(circle)
-            plt.text(self.getNode(i).x + 0.03, self.getNode(i).y + 0.03, str(i), fontsize=10, color='blue')
+            #plt.text(self.getNode(i).x + 0.03, self.getNode(i).y + 0.03, str(i), fontsize=10, color='blue')
         if node is not None:
             plt.plot(node.x, node.y, '^r')
         ax = plt.gca()

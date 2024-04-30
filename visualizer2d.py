@@ -33,7 +33,7 @@ def showPath(path):
         #plt.text(path[n].x - 0.5, path[n].y + 0.03, str(n), fontsize=10, color='green')
 
 def showPRM(args):
-    map = prm.PRM(tree=False, geom='circle')
+    map = prm.PRM(tree=False, geom='point')
     map.env.load('data/envs/env_0.txt')
     map.load('data/env0/prm.txt')
     time1 = time.time()
@@ -41,11 +41,18 @@ def showPRM(args):
     #map.save('test_prm.txt')
     time2 = time.time()
     #print(time2 - time1)
-    map.visualize()
     print(map.graph.size)
-    #path, cost = map.getPath((0.5, 9.5), (9.5, 0.5))
-    path = loadPath('data/env0/path0.txt')
+    map.visualize()
+    path = map.lvc(loadPath('data/env0/path0.txt'))
     showPath(path)
+    #path, cost = map.getPath((0.5, 9.5), (9.5, 0.5))
+    # for i in range(200):
+    #     map.visualize()
+    #     filepath = 'data/env6/path' + str(i) + '.txt'
+    #     path = loadPath(filepath)
+    #     showPath(path)
+    #     plt.pause(.5)
+    #     plt.cla()
     #showPath(map.lvc(path))
     #print(cost)
 

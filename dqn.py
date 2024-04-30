@@ -18,13 +18,13 @@ class DQN(nn.Module):
         return self.net(x)
 
 class DQNAgent:
-    def __init__(self, input_dim, action_dim, gamma=0.99, batch_size=128, eps = 1, decay = 0.9999, buffer_size=10000):
+    def __init__(self, input_dim, action_dim, gamma=0.99, batch_size=128, eps = 1, min_eps = 0.01, decay = 0.9999, buffer_size=5000):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model = DQN(input_dim, action_dim).float()
         self.target_model = DQN(input_dim, action_dim).float()
         self.target_model.load_state_dict(self.model.state_dict())
-        self.brain_eval.to(self.device)
-        self.brain_target.to(self.device)
+        self.model.to(self.device)
+        self.target_model.to(self.device)
         self.target_model.eval()
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
         self.criterion = nn.MSELoss()
@@ -34,7 +34,7 @@ class DQNAgent:
         self.action_dim = action_dim
         self.exploration_rate = eps
         self.exploration_decay = decay
-        self.exploration_min = 0.01
+        self.exploration_min = min_eps
 
     def act(self, state):
         """ Choose an action based on the current state """
@@ -55,6 +55,8 @@ class DQNAgent:
         batch = random.sample(self.replay_buffer, self.batch_size)
         states, actions, rewards, next_states, dones = zip(*batch)
         #states = np.array(states)
+        dists = np.array(states)
+        dists = dists[:, 6]
         states = torch.tensor(states, dtype=torch.float32)
         next_states = torch.tensor(next_states, dtype=torch.float32)
         actions = torch.tensor(actions, dtype=torch.int64)
@@ -71,7 +73,11 @@ class DQNAgent:
         
         # Get next Q value from target model
         next_q_values = self.target_model(next_states).max(1)[0].detach()
-        expected_q_values = rewards + (self.gamma * next_q_values * (~dones))
+        gamma = self.gamma
+        gamma += 3* (1-self.exploration_rate) / 4
+        #gamma = torch.tensor(gamma + .2/dists, dtype=torch.float32).to(self.device)
+        #gamma = torch.clamp(gamma, 0, 1)
+        expected_q_values = rewards + (gamma * next_q_values * (~dones))
 
         # Compute loss
         loss = self.criterion(current_q_values, expected_q_values)
